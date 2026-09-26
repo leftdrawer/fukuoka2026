@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="googlebot" content="noindex,nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="theme-color" content="#1b1f27">
+<title>후쿠오카 동선</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="app.css">
+<script>
+  // 저장된 테마를 그리기 전에 적용 (깜빡임 방지)
+  try { var t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+</head>
+<body>
+<div id="map" aria-label="지도"></div>
+
+<header id="top">
+  <div id="dayTitle"></div>
+  <div id="dayMeta"></div>
+</header>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<div id="fabs">
+  <div class="col left">
+    <button id="bWake" class="fab" aria-pressed="false" title="화면 꺼짐 방지"><span class="i">🔆</span><span class="t">화면 켜둠</span></button>
+    <button id="bTheme" class="fab" title="다크 모드"><span class="i">🌙</span><span class="t">다크</span></button>
+  </div>
+  <div class="col right">
+    <button id="bGpsOff" class="fab" title="GPS 켜기/끄기"><span class="i">📡</span><span class="t">GPS 켜기</span></button>
+    <button id="bFollow" class="fab" aria-pressed="false" title="따라가기"><span class="i">🧭</span><span class="t">따라가기</span></button>
+    <button id="bLocate" class="fab big" title="내 위치로 이동"><span class="i">◎</span><span class="t">내 위치</span></button>
+  </div>
+</div>
+
+<section id="card" tabindex="0" aria-label="지금 할 일 / 다음 할 일">
+  <div class="row now"><span class="lbl">지금</span><span id="nowText"></span></div>
+  <div class="row next"><span class="lbl">다음</span><span id="nextText"></span></div>
+  <div class="row dist" id="distText"></div>
+</section>
+
+<nav id="tabs" role="tablist"></nav>
+
+<div id="scrim"></div>
+<section id="sheet" aria-hidden="true">
+  <div class="grab"></div>
+  <div id="sheetBody"></div>
+  <div class="sheetNav">
+    <button id="sPrev">‹ 이전</button>
+    <button id="sClose">닫기</button>
+    <button id="sNext">다음 ›</button>
+  </div>
+</section>
+
+<script src="vendor/leaflet.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js'); });
+  }
+</script>
+</body>
+</html>
