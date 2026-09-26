@@ -357,6 +357,7 @@
       if (s.cost_jpy) h += '<dt>예상 비용</dt><dd>' + yen(s.cost_jpy) + ' <span style="color:var(--sub)">≈ ' + won(s.cost_jpy) + '</span>' + (s.cost_est ? '<span class="badge">추정</span>' : '') + '</dd>';
       h += '</dl>';
       if (s.notes.length) h += '<ul class="sh-notes">' + s.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
+      if (s.teacher && s.teacher.length) h += '<div class="sh-teacher"><div class="hd">🙏 진홍 선생님</div><ul class="sh-notes">' + s.teacher.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul></div>';
       h += '<div class="sh-actions"><button data-copy="' + esc(s.name_ja) + '">📋 일본어 이름 복사</button>' +
         (s.address ? '<button data-copy="' + esc(s.address) + '">📋 주소 복사</button>' : '<button data-fly="1">🗺️ 지도에서 보기</button>') +
         '<a class="primary wide" href="' + gmapsUrl(e) + '" target="_blank" rel="noopener">구글 지도 길찾기</a></div>';
