@@ -444,7 +444,8 @@
     if (!byTime) byTime = list.find(function (e) { return e.start > t; }) || list[list.length - 1];
     var best = byTime;
     // 위치가 있으면 거리+시각 점수로 (100m = 1점, 앞뒤 15분 여유 밖 10분 = 1점), 비슷하면 시각 기준 우선
-    if (gps && gps.acc < 500 && inFukuoka([gps.lat, gps.lon])) {
+    // 입국 수속·탑승 수속 같은 할 일은 장소가 없으니 시각이 우선 (GPS로 옆 구간에 뺏기지 않게)
+    if (gps && byTime.type !== 'task' && gps.acc < 500 && inFukuoka([gps.lat, gps.lon])) {
       var p = [gps.lat, gps.lon], bs = Infinity;
       list.forEach(function (e) {
         var d = distToEntry(p, e); if (!isFinite(d)) return;
@@ -562,6 +563,7 @@
     if (refit && st.di >= 0 && st.di !== selDay) selectDay(st.di, false);
     if (prev !== cur) { drawLines(); drawPins(); }
     renderQuest(st); renderHud();
+    $('bQR').style.display = qrNeeded(st.now) ? '' : 'none';
     var key = cur ? cur.key : null;
     if (key !== lastKey) {
       if (lastKey !== null && cur) { banner(entryTitle(cur, true)); whipCard(); if (cur.day === selDay && !follow) whipTo(entryPoint(cur, 'start')); }
@@ -590,7 +592,7 @@
     h += '<span class="sh-kind" style="color:' + QTYPE[qt].c + '">' + QTYPE[qt].tag + (done ? ' · 완료' : '') + '</span> ' + modeChip(e);
     if (e.type === 'task') {
       h += '<div class="sh-title">' + esc(e.text) + '</div><div class="sh-time">' + entryTime(e) + '</div>';
-      if (/QR|입국/.test(e.text)) h += '<div class="sh-actions"><button data-qr="1" class="wide">입국 QR 보기</button></div>';
+      if (/QR/.test(e.text)) h += '<div class="sh-actions"><button data-qr="1" class="wide">입국 QR 보기</button></div>';
     } else if (e.type === 'place') {
       var c = CAT[s.category] || CAT.food, q = s.quest || {};
       h += '<div class="sh-title">' + esc(s.name) + '</div><div class="sh-ja" lang="ja">' + esc(s.name_ja) + '</div>';
@@ -702,6 +704,7 @@
         h += '<div class="m-h">' + esc(g.title) + '</div>';
         g.items.forEach(function (it, ii) { var id = gi + '.' + ii, on = !!P.pack[id]; h += '<div class="chk ' + (on ? 'on' : '') + '" data-pack="' + id + '"><span class="box">' + (on ? '✓' : '') + '</span><span>' + esc(it) + '</span></div>'; });
       });
+      h += '<div class="m-h">입국 QR (9/29 입국 때만)</div><div class="sh-actions"><button data-qr="1" class="wide">입국 QR 열기</button></div>';
       h += '<div class="m-h">수하물 (이스타)</div><ul class="sh-notes">' + G.baggage.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
     } else if (menuTab === 'shop') {
       h += '<div class="m-h">사 올 것</div><div class="cards">' + G.shop.map(function (s) {
@@ -728,7 +731,7 @@
       var fares = 0, costs = 0;
       DAYS.forEach(function (D) { D.list.forEach(function (e) {
         if (e.type === 'move' && e.step.fare_jpy) fares += e.step.fare_jpy;
-        if (e.type === 'place' && e.step.cost_jpy && e.step.pt !== 'DAIKANSO') costs += e.step.cost_jpy;
+        if (e.type === 'place' && e.step.cost_jpy) costs += e.step.cost_jpy;
       }); });
       rows += '<tr><td>현지 교통비 (일정 합계)</td><td>' + yen(fares) + ' ≈ ' + won(fares) + '</td></tr>';
       rows += '<tr><td>식비·새전·입장료 (엑셀 추정)</td><td>' + yen(costs) + ' ≈ ' + won(costs) + '</td></tr>';
@@ -752,7 +755,7 @@
       h += '<div class="m-h">현금과 카드</div><table class="money">' + prow +
         '<tr><td>' + esc(G.payment.card) + ' (지하철)</td><td>' + yen(cardAll) + '</td></tr>' +
         '<tr class="total"><td>현금 필요</td><td>' + yen(cashAll) + '</td></tr></table>' +
-        '<p class="small">여유 30%를 더하면 약 <b>' + yen(need) + '</b>. 환전하는 3만 엔이면 충분하고, 남는 돈은 기념품·간식에 쓰면 돼요.</p>' +
+        '<p class="small">여유 30%를 더하면 약 <b>' + yen(need) + '</b>. 여기에 카드 안 받는 식당·야타이·기념품까지 생각하면 <b>총 3만 엔</b> 권장.</p>' +
         '<div class="m-h">카드로 되는 곳</div><ul class="sh-list">' + G.payment.card_rules.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' +
         '<div class="m-h">현금이 필요한 곳</div><ul class="sh-list">' + G.payment.cash_rules.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
     }
@@ -761,6 +764,7 @@
   $('menuBody').addEventListener('click', function (ev) {
     var r = ev.target.closest('.log-row[data-d]');
     if (r) { var e = DAYS[+r.dataset.d].list[+r.dataset.i]; closeMenu(true); openSheet(e); var p = entryPoint(e, 'start'); if (p) whipTo(p); return; }
+    if (ev.target.closest('[data-qr]')) { closeMenu(); return openQR(); }
     var c = ev.target.closest('.chk'); if (c) { toggleObj('pack', c.dataset.pack); renderMenu(); if (lastState) renderQuest(lastState); }
   });
 
@@ -871,6 +875,9 @@
     $('qrImgs').innerHTML = imgs.length ? imgs.map(function (u) { return '<img src="' + u + '" alt="입국 QR">'; }).join('')
       : '<div class="qr-empty">아직 저장한 캡처가 없어요.<br>Visit Japan Web에서 QR 화면을 캡처한 뒤<br>"QR 캡처 불러오기"를 누르세요.</div>';
   }
+  // 입국 QR 버튼은 출발 전 ~ 첫날 입국 수속 끝나고 90분(연착 여유)까지만. 그 뒤엔 가방 탭에서
+  var QR_TASK = (function () { var d = DAYS[0].d.date, t = (T.tasks[d] || []).find(function (x) { return /QR/.test(x.text); }); return t && { date: d, end: hm(t.end) }; })();
+  function qrNeeded(now) { return !!QR_TASK && (now.date < QR_TASK.date || (now.date === QR_TASK.date && now.min < QR_TASK.end + 90)); }
   function openQR() { qrRender(); $('qr').classList.add('show'); $('qr').setAttribute('aria-hidden', 'false'); }
   function closeQR() { $('qr').classList.remove('show'); $('qr').setAttribute('aria-hidden', 'true'); }
   function shrink(file) { // 큰 스크린샷은 1200px로 줄여서 저장 (QR 인식에 충분)
