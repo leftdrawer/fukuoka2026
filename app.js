@@ -20,7 +20,8 @@
     temple: { c: '#7B4B94', icon: '🪷', label: '절' },
     hotel:  { c: '#2F5597', icon: '🏨', label: '숙소' },
     food:   { c: '#16833F', icon: '🍜', label: '식당' },
-    bath:   { c: '#1F6FB2', icon: '♨️', label: '목욕탕' }
+    bath:   { c: '#1F6FB2', icon: '♨️', label: '목욕탕' },
+    bar:    { c: '#C2255C', icon: '🏳️‍🌈', label: '바' }
   };
   var QTYPE = {
     main:   { tag: '기도터',   c: 'var(--red)' },
