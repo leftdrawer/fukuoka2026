@@ -6,7 +6,7 @@
   var TZ = 'Asia/Tokyo';
 
   var MODE = {
-    flight:     { c: '#1DB898', label: '에어서울',     icon: '✈️', gm: null },
+    flight:     { c: '#1DB898', label: '비행기',       icon: '✈️', gm: null },
     shuttle:    { c: '#595959', label: '공항 연결버스', icon: '🚌', gm: 'transit' },
     subway:     { c: '#F08300', label: '지하철',       icon: '🚇', gm: 'transit' },
     jr:         { c: '#E60012', label: 'JR',           icon: '🚆', gm: 'transit' },
