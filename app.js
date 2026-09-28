@@ -498,7 +498,9 @@
     $('qDone').textContent = done ? '✓ 완료됨 (되돌리기)' : e.type === 'move' ? '도착 ✓' : '완료 ✓';
     $('qDone').classList.toggle('done', done);
     $('qDone').onclick = function () { toggleDone(e); };
-    $('qDetail').onclick = function () { openSheet(e); };
+    var isQR = e.type === 'task' && /QR/.test(e.text);
+    $('qDetail').textContent = isQR ? '🛂 QR 보기' : '📜 상세';
+    $('qDetail').onclick = function () { if (isQR) openQR(); else openSheet(e); };
   }
   function setQType(qt) { $('quest').style.setProperty('--qc', QTYPE[qt].c); }
   function objLi(text, on, kind, id) { return '<li class="' + (on ? 'on' : '') + '" data-kind="' + kind + '" data-id="' + esc(id) + '"><span class="box">' + (on ? '✓' : '') + '</span><span>' + esc(text) + '</span></li>'; }
@@ -569,6 +571,7 @@
     h += '<span class="sh-kind" style="background:' + QTYPE[qt].c + '">' + QTYPE[qt].tag + (done ? ' · CLEAR' : '') + '</span>';
     if (e.type === 'task') {
       h += '<div class="sh-title">' + esc(e.text) + '</div><div class="sh-time">' + entryTime(e) + '</div>';
+      if (/QR|입국/.test(e.text)) h += '<div class="sh-actions"><button data-qr="1" class="wide">🛂 입국 QR 보기</button></div>';
     } else if (e.type === 'place') {
       var c = CAT[s.category] || CAT.food, q = s.quest || {};
       h += '<div class="sh-title">' + c.icon + ' ' + esc(s.name) + '</div><div class="sh-ja" lang="ja">' + esc(s.name_ja) + '</div>';
@@ -630,6 +633,7 @@
     var li = ev.target.closest('li[data-kind]');
     if (li) { toggleObj(li.dataset.kind, li.dataset.id); openSheet(sheetEntry); update(false); return; }
     var b = ev.target.closest('button'); if (!b) return;
+    if (b.dataset.qr) { closeSheet(); return openQR(); }
     if (b.dataset.fly) return flyTo(sheetEntry);
     if (b.dataset.run) { closeSheet(); return runRoute(sheetEntry); }
     if (b.dataset.done) { toggleDone(sheetEntry); return openSheet(sheetEntry); }
@@ -815,6 +819,46 @@
 
   var toastT = null;
   function toast(msg, ms) { var t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('show'); }, ms || 2500); }
+
+  // ------------------------------------------------------------ 입국 QR: 캡처를 이 폰(localStorage)에만 저장, 오프라인에서도 표시
+  function qrLoad() { try { return JSON.parse(localStorage.getItem('fk-qr') || '[]'); } catch (e) { return []; } }
+  function qrRender() {
+    var imgs = qrLoad();
+    $('qrImgs').innerHTML = imgs.length ? imgs.map(function (u) { return '<img src="' + u + '" alt="입국 QR">'; }).join('')
+      : '<div class="qr-empty">아직 저장한 캡처가 없어요.<br>Visit Japan Web에서 QR 화면을 캡처한 뒤<br>"QR 캡처 불러오기"를 누르세요.</div>';
+  }
+  function openQR() { qrRender(); $('qr').classList.add('show'); $('qr').setAttribute('aria-hidden', 'false'); }
+  function closeQR() { $('qr').classList.remove('show'); $('qr').setAttribute('aria-hidden', 'true'); }
+  function shrink(file) { // 큰 스크린샷은 1200px로 줄여서 저장 (QR 인식에 충분)
+    return new Promise(function (res, rej) {
+      var fr = new FileReader();
+      fr.onerror = rej;
+      fr.onload = function () {
+        var im = new Image();
+        im.onerror = rej;
+        im.onload = function () {
+          var k = Math.min(1, 1200 / Math.max(im.width, im.height)), cv = document.createElement('canvas');
+          cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
+          cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+          res(cv.toDataURL('image/png'));
+        };
+        im.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+  $('bQR').addEventListener('click', openQR);
+  $('qrClose').addEventListener('click', closeQR);
+  $('qrDel').addEventListener('click', function () { if (confirm('저장한 QR 캡처를 지울까요?')) { try { localStorage.removeItem('fk-qr'); } catch (e) {} qrRender(); } });
+  $('qrFile').addEventListener('change', function (ev) {
+    var files = [].slice.call(ev.target.files || []);
+    Promise.all(files.map(shrink)).then(function (urls) {
+      var all = qrLoad().concat(urls).slice(-3);
+      try { localStorage.setItem('fk-qr', JSON.stringify(all)); toast('QR 캡처 저장했어요'); } catch (e) { toast('저장 공간이 부족해요 — 캡처를 줄여서 다시 해 주세요'); }
+      qrRender(); ev.target.value = '';
+    }, function () { toast('이미지를 읽지 못했어요'); });
+  });
+  window.__openQR = openQR;
 
   // ------------------------------------------------------------ 시작
   function layout() { document.documentElement.style.setProperty('--dock', dockH() + 'px'); }

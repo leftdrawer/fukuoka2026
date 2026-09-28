@@ -40,6 +40,7 @@
 <div id="fabs">
   <div class="col left">
     <button id="bWake" class="fab" aria-pressed="false" title="화면 꺼짐 방지"><span class="i">🔆</span><span class="t">화면 켜둠</span></button>
+    <button id="bQR" class="fab" title="입국 QR"><span class="i">🛂</span><span class="t">입국 QR</span></button>
     <button id="bTheme" class="fab" title="다크 모드"><span class="i">🌙</span><span class="t">다크</span></button>
   </div>
   <div class="col right">
@@ -99,6 +100,16 @@
     <div class="intro-tap">화면을 눌러 시작</div>
   </div>
 </div>
+<section id="qr" aria-hidden="true" aria-label="입국 QR">
+  <div class="qr-top"><b>🛂 입국 QR (Visit Japan Web)</b><button id="qrClose" class="qr-x" aria-label="닫기">✕</button></div>
+  <div id="qrImgs" class="qr-imgs"></div>
+  <p class="qr-hint">화면 밝기를 최대로 올려서 보여 주세요 · 캡처는 이 폰에만 저장돼요</p>
+  <div class="qr-actions">
+    <label class="qr-btn">📷 QR 캡처 불러오기<input id="qrFile" type="file" accept="image/*" multiple hidden></label>
+    <a class="qr-btn primary" href="https://www.vjw.digital.go.jp/main/#/vjwpic026" target="_blank" rel="noopener">🌐 Visit Japan Web 열기</a>
+    <button id="qrDel" class="qr-btn">🗑 저장한 캡처 지우기</button>
+  </div>
+</section>
 <div id="punch" aria-hidden="true"><div class="p-heart">❤</div><div id="punchText" class="p-text"></div></div>
 
 <script src="vendor/leaflet.js"></script>
