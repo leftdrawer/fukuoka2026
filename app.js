@@ -101,7 +101,9 @@
     if (s.mode === 'flight') return ['탑승 수속 · 여권 확인', s.to + ' 도착'];
     if (s.mode === 'walk') return [s.to + '까지 걷기 (' + fmtDist(s.dist_m) + ')'];
     var o = [];
-    if (s.fare_jpy) o.push('운임 ' + yen(s.fare_jpy) + ' 준비 (IC카드·현금)');
+    if (s.pay === 'card') o.push(yen(s.fare_jpy) + ' · ' + G.payment.card + ' 개찰구에 터치');
+    else if (s.pay === 'free') o.push('무료');
+    else if (s.fare_jpy) o.push(yen(s.fare_jpy) + ' · 현금' + (s.mode === 'bus' ? ' (탈 때 번호표, 내릴 때 요금함)' : '으로 표 사기'));
     o.push(s.from + '에서 ' + m.label + ' 탑승');
     o.push(s.to + '에서 내리기');
     return o;
@@ -116,6 +118,10 @@
     var s = e.step;
     if (e.type === 'place') return s.name;
     return short ? s.to + '까지' : s.from + ' → ' + s.to;
+  }
+  function payChip(x) {
+    var p = x.type ? (x.step && x.step.pay) : x;
+    return p === 'card' ? '<span class="pay card">카드</span>' : p === 'cash' ? '<span class="pay cash">현금</span>' : p === 'free' ? '<span class="pay">무료</span>' : '';
   }
   function modeChip(e) {
     if (e.type !== 'move') return '';
@@ -478,7 +484,7 @@
     }
     var list = DAYS[st.di].list, next = list[e.idx + 1], qt = qtype(e), done = isDone(e);
     setQType(qt);
-    $('qType').innerHTML = esc(QTYPE[qt].tag) + (e.type === 'move' ? ' ' + modeChip(e) : '');
+    $('qType').innerHTML = esc(QTYPE[qt].tag) + (e.type === 'move' ? ' ' + modeChip(e) + ' ' + payChip(e) : '');
     var slot = $('qStamp');
     slot.className = 'slot' + (qt === 'main' ? (done ? ' on' : '') : ' hide');
     slot.textContent = done ? '参拝' : '印';
@@ -611,6 +617,7 @@
       h += sec('', '할 일', objs, true);
       h += '<dl class="sh-grid">';
       if (s.line) h += '<dt>노선</dt><dd lang="ja">' + esc(s.line) + '</dd>';
+      if (s.pay) h += '<dt>결제</dt><dd>' + payChip(e) + ' ' + (s.pay === 'card' ? esc(G.payment.card) + ' 터치' : s.pay === 'cash' ? '현금' : '무료') + '</dd>';
       if (s.fare_jpy != null) h += '<dt>운임</dt><dd>' + (s.fare_jpy ? yen(s.fare_jpy) + ' <span style="color:var(--sub)">≈ ' + won(s.fare_jpy) + '</span>' : '무료') + (s.est_fare ? '<span class="badge">운임 추정</span>' : '') + '</dd>';
       if (s.mode !== 'flight') h += '<dt>거리</dt><dd>' + fmtDist(s.dist_m) + ' (지도 경로)</dd>';
       if (s.note) h += '<dt>메모</dt><dd>' + esc(s.note) + '</dd>';
@@ -728,6 +735,26 @@
       var total = fixed + (fares + costs) * RATE;
       rows += '<tr class="total"><td>합계</td><td>' + krw(total) + '</td></tr>';
       h += '<div class="m-h">예산</div><table class="money">' + rows + '</table><p class="small">1엔 = ' + RATE + '원 (' + esc(T.rate_note) + ') · 기념품·간식 제외</p>';
+      // 현지에서 카드로 낼 돈 / 현금으로 낼 돈
+      var cardAll = 0, cashAll = 0, prow = '';
+      DAYS.forEach(function (D, di) {
+        var sub = 0, cashT = 0, cashP = 0, l = dayLabel(D.d.date);
+        D.list.forEach(function (e) {
+          var s2 = e.step; if (!s2) return;
+          if (e.type === 'move' && s2.fare_jpy) { if (s2.pay === 'card') sub += s2.fare_jpy; else if (s2.pay === 'cash') cashT += s2.fare_jpy; }
+          if (e.type === 'place' && s2.pay === 'cash' && s2.cost_jpy) cashP += s2.cost_jpy;
+        });
+        var card = Math.min(sub, 640);
+        cardAll += card; cashAll += cashT + cashP;
+        prow += '<tr><td>' + (di + 1) + '일차 ' + l.md + '<br><span class="small">카드 ' + yen(card) + (sub > 640 ? ' (지하철 ' + yen(sub) + ' → 하루 상한 640엔)' : '') + ' · 현금 교통 ' + yen(cashT) + ' · 현금 식비·새전 ' + yen(cashP) + '</span></td><td>' + yen(cashT + cashP) + '</td></tr>';
+      });
+      var need = Math.ceil(cashAll * 1.3 / 1000) * 1000;
+      h += '<div class="m-h">현금과 카드</div><table class="money">' + prow +
+        '<tr><td>' + esc(G.payment.card) + ' (지하철)</td><td>' + yen(cardAll) + '</td></tr>' +
+        '<tr class="total"><td>현금 필요</td><td>' + yen(cashAll) + '</td></tr></table>' +
+        '<p class="small">여유 30%를 더하면 약 <b>' + yen(need) + '</b>. 환전하는 3만 엔이면 충분하고, 남는 돈은 기념품·간식에 쓰면 돼요.</p>' +
+        '<div class="m-h">카드로 되는 곳</div><ul class="sh-list">' + G.payment.card_rules.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' +
+        '<div class="m-h">현금이 필요한 곳</div><ul class="sh-list">' + G.payment.cash_rules.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
     }
     $('menuBody').innerHTML = h; $('menuBody').scrollTop = 0;
   }
