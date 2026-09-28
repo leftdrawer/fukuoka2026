@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="googlebot" content="noindex,nofollow">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="theme-color" content="#14110f">
+<meta name="theme-color" content="#0b1020">
 <title>후쿠오카 순례</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
@@ -19,6 +19,7 @@
 </head>
 <body>
 <div id="map" aria-label="지도"></div>
+<canvas id="rain" aria-hidden="true"></canvas>
 <div id="flash" aria-hidden="true"></div>
 
 <header id="hud">
@@ -84,6 +85,7 @@
     <button data-tab="shop">🛍 상점</button>
     <button data-tab="rule">🙏 예절</button>
     <button data-tab="money">💰 예산</button>
+    <button data-tab="wx">☔ 날씨</button>
   </div>
   <div id="menuBody"></div>
   <div class="sheetNav one"><button id="mClose">닫기</button></div>
