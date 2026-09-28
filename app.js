@@ -484,7 +484,7 @@
     }
     var list = DAYS[st.di].list, next = list[e.idx + 1], qt = qtype(e), done = isDone(e);
     setQType(qt);
-    $('qType').innerHTML = esc(QTYPE[qt].tag) + (e.type === 'move' ? ' ' + modeChip(e) + ' ' + payChip(e) : '');
+    $('qType').innerHTML = esc(QTYPE[qt].tag) + (e.type === 'place' && e.step.quest && e.step.quest.optional ? ' · 선택' : '') + (e.type === 'move' ? ' ' + modeChip(e) + ' ' + payChip(e) : '');
     var slot = $('qStamp');
     slot.className = 'slot' + (qt === 'main' ? (done ? ' on' : '') : ' hide');
     slot.textContent = done ? '参拝' : '印';
