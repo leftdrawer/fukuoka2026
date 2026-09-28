@@ -23,11 +23,11 @@
     bath:   { c: '#1F6FB2', icon: '♨️', label: '목욕탕' }
   };
   var QTYPE = {
-    main:   { tag: 'MAIN QUEST', c: 'var(--gold)' },
-    side:   { tag: 'SIDE QUEST', c: 'var(--cyan)' },
-    rest:   { tag: 'REST',       c: 'var(--violet)' },
-    travel: { tag: 'TRAVEL',     c: 'var(--sky)' },
-    task:   { tag: 'TASK',       c: 'var(--sub)' }
+    main:   { tag: '기도터',   c: 'var(--red)' },
+    side:   { tag: '들를 곳',  c: 'var(--green)' },
+    rest:   { tag: '숙소',     c: 'var(--blue)' },
+    travel: { tag: '이동',     c: 'var(--ink2)' },
+    task:   { tag: '할 일',    c: 'var(--mute)' }
   };
   var WD = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -112,11 +112,15 @@
     return null;
   }
   function entryTitle(e, short) {
-    if (e.type === 'task') return '📋 ' + e.text;
+    if (e.type === 'task') return e.text;
     var s = e.step;
-    if (e.type === 'place') return (CAT[s.category] || CAT.food).icon + ' ' + s.name;
-    var m = MODE[s.mode];
-    return m.icon + ' ' + (short ? s.to + '까지 ' + m.label : s.from + ' → ' + s.to);
+    if (e.type === 'place') return s.name;
+    return short ? s.to + '까지' : s.from + ' → ' + s.to;
+  }
+  function modeChip(e) {
+    if (e.type !== 'move') return '';
+    var m = MODE[e.step.mode], col = m.c.indexOf('var(') === 0 ? '#6b7280' : m.c;
+    return '<span class="mode" style="background:' + col + '">' + m.label + '</span>';
   }
   function entryTime(e) { return fmtTime(e.start) + (e.end > e.start ? '–' + fmtTime(e.end) : ''); }
   // 완료 판정: 장소는 직접 완료, 이동·할 일은 시간이 지나면 자동
@@ -161,7 +165,7 @@
   function wxSec(e) {
     var r = wxRange(DAYS[e.day].d.date, e.start, e.end);
     if (!r || (r.pp < 40 && r.pr < 0.2)) return '';
-    return '<div class="sec rain"><div class="hd">☔ 비 예보</div><ul><li>이 시간 강수확률 최대 ' + r.pp + '%' + (r.pr ? ', ' + r.pr.toFixed(1) + 'mm' : '') + ' — 우산 챙기기</li></ul></div>';
+    return '<div class="sh-h rain">비 예보</div><ul class="sh-list"><li>이 시간 강수확률 최대 ' + r.pp + '%' + (r.pr ? ', ' + r.pr.toFixed(1) + 'mm' : '') + '. 우산 챙기기</li></ul>';
   }
   var wxBusy = false;
   function refreshWx() {
@@ -236,7 +240,7 @@
   var selDay = 0, cur = null, gps = null, follow = false, lastState = null;
   var lineLayers = [], pinLayers = {}, stopLayer = L.layerGroup().addTo(map);
 
-  function isDark() { var t = document.documentElement.dataset.theme; return t ? t === 'dark' : !matchMedia('(prefers-color-scheme: light)').matches; }
+  function isDark() { return document.documentElement.dataset.theme === 'dark'; }
   function styleFor(e, state) {
     var m = MODE[e.step.mode];
     var col = m.c.indexOf('var(') === 0 ? getComputedStyle(document.documentElement).getPropertyValue('--walk').trim() : m.c;
@@ -331,8 +335,11 @@
     f.classList.remove('on'); m.classList.remove('snap'); void f.offsetWidth; f.classList.add('on'); m.classList.add('snap');
   }
   var punchT = null;
-  function punchIn(text) { // 줌인 과정 없이 바로 확대된 하트
-    var p = $('punch'); $('punchText').textContent = text;
+  function punchIn(e) { // 줌인 과정 없이 바로 찍히는 도장(기도터) / 하트
+    var p = $('punch'), l = dayLabel(DAYS[e.day].d.date);
+    $('punchMark').innerHTML = qtype(e) === 'main'
+      ? '<div class="big-stamp"><div class="k">参拝</div><div class="n">' + esc(e.step.name) + '</div><div class="d">2026 · ' + l.md + '</div></div>'
+      : '<svg class="big-heart" viewBox="0 0 24 24" width="46vw" height="46vw"><path fill="currentColor" d="M12 21s-7.6-4.7-9.7-9.3C.8 8.3 3 4.5 6.8 4.5c2.1 0 3.6 1.1 5.2 3 1.6-1.9 3.1-3 5.2-3 3.8 0 6 3.8 4.5 7.2C19.6 16.3 12 21 12 21z"/></svg>';
     clearTimeout(punchT); p.classList.remove('out'); p.classList.add('on');
     punchT = setTimeout(function () { p.classList.add('out'); p.classList.remove('on'); }, 30);
   }
@@ -366,9 +373,10 @@
   var introT = null;
   function showIntro(di) {
     var d = DAYS[di].d, l = dayLabel(d.date), it = $('intro');
-    $('introNum').textContent = 'CHAPTER ' + (di + 1);
+    $('introNum').textContent = (di + 1) + '일차 · ' + l.md + ' (' + l.wd + ')';
     $('introTitle').textContent = d.theme;
-    $('introSub').innerHTML = l.md + ' (' + l.wd + ') · ' + wxLine(d.date);
+    $('introSub').innerHTML = wxLine(d.date);
+    $('introSlots').innerHTML = DAYS[di].list.filter(function (e) { return qtype(e) === 'main'; }).map(function (e) { return '<span>' + esc(e.step.name) + '</span>'; }).join('');
     it.classList.remove('hide'); it.classList.add('show'); it.setAttribute('aria-hidden', 'false');
     clearTimeout(introT); introT = setTimeout(hideIntro, 2600);
   }
@@ -383,21 +391,23 @@
   }
   function renderHud() {
     var d = DAYS[selDay].d, l = dayLabel(d.date);
-    $('chap').textContent = 'CH.' + (selDay + 1);
+    $('chap').textContent = (selDay + 1) + '일차';
     $('dayTitle').textContent = d.theme;
     $('dayMeta').innerHTML = l.md + ' (' + l.wd + ') · ' + wxLine(d.date);
-    var s = stampCount(); $('stamps').textContent = '⛩ ' + s.done + '/' + s.all;
+    var dots = [];
+    DAYS.forEach(function (D) { D.list.forEach(function (e) { if (qtype(e) === 'main') dots.push('<span class="stamp-dot' + (isDone(e) ? ' on' : '') + '" title="' + esc(e.step.name) + '">印</span>'); }); });
+    $('stamps').innerHTML = dots.join('');
     var list = DAYS[selDay].list.filter(function (e) { return e.type !== 'task'; });
     var dn = list.filter(isDone).length, pct = list.length ? Math.round(dn / list.length * 100) : 0;
     $('xpFill').style.width = pct + '%';
-    $('xpText').textContent = 'EXP ' + dn + '/' + list.length;
+    $('xpText').textContent = '오늘 ' + dn + '/' + list.length;
   }
   function drawDock() {
     var today = tokyoNow().date;
     $('dock').innerHTML = DAYS.map(function (D, i) {
       var l = dayLabel(D.d.date);
-      return '<button role="tab" data-i="' + i + '" aria-selected="' + (i === selDay) + '">CH.' + (i + 1) + '<small>' + l.md + ' ' + l.wd + '</small>' + (D.d.date === today ? '<i class="today"></i>' : '') + '</button>';
-    }).join('') + '<button class="menu-btn" data-menu="1" aria-label="메뉴">📜<small>메뉴</small></button>';
+      return '<button role="tab" data-i="' + i + '" aria-selected="' + (i === selDay) + '"><b>' + (i + 1) + '일차</b><small>' + l.md + ' ' + l.wd + '</small>' + (D.d.date === today ? '<i class="today"></i>' : '') + '</button>';
+    }).join('') + '<button class="menu-btn" data-menu="1" aria-label="메뉴"><svg class="ic"><use href="#i-menu"/></svg><small>메뉴</small></button>';
   }
   $('dock').addEventListener('click', function (ev) {
     var b = ev.target.closest('button'); if (!b) return;
@@ -454,29 +464,34 @@
     if (st.di < 0) {
       var first = DAYS[0].d.date, before = now.date < first;
       var dd = Math.round((new Date(first + 'T00:00:00+09:00') - new Date(now.date + 'T00:00:00+09:00')) / 86400000);
-      setQType(before ? 'task' : 'rest');
-      $('qType').textContent = before ? 'PROLOGUE' : 'EPILOGUE';
+      setQType(before ? 'task' : 'rest'); $('qStamp').className = 'slot hide'; $('qTimer').classList.remove('late');
+      $('qType').textContent = before ? '출발 전' : '여행 끝';
       $('qTimer').textContent = before ? 'D-' + dd : '';
-      $('qTitle').textContent = before ? '순례 준비 — 가방부터 챙기기' : '순례 끝 — 수고하셨습니다 🙏';
+      $('qTitle').textContent = before ? '준비물부터 챙겨요' : '수고하셨습니다';
       $('qObjs').innerHTML = before ? G.packing[0].items.slice(0, 3).map(function (x, i) { return objLi(x, !!P.pack['0.' + i], 'pack', '0.' + i); }).join('') : '';
-      $('qReward').textContent = before ? '✨ 첫 퀘스트: ' + dayLabel(first).md + ' ' + entryTitle(DAYS[0].list[0]) : '';
+      $('qReward').textContent = before ? '첫 일정 ' + dayLabel(first).md + ' ' + fmtTime(DAYS[0].list[0].start) + ' ' + entryTitle(DAYS[0].list[0]) : '';
       $('qDist').textContent = ''; $('qNext').textContent = '';
-      $('qDone').textContent = before ? '🎒 가방 열기' : '📜 기록 보기'; $('qDone').classList.remove('done');
+      $('qDone').textContent = before ? '준비물 보기' : '일정 보기'; $('qDone').classList.remove('done'); $('qDetail').textContent = '일정';
       $('qDone').onclick = function () { openMenu(before ? 'bag' : 'log'); };
       $('qDetail').onclick = function () { openMenu('log'); };
       return;
     }
     var list = DAYS[st.di].list, next = list[e.idx + 1], qt = qtype(e), done = isDone(e);
     setQType(qt);
-    $('qType').textContent = QTYPE[qt].tag;
-    $('qTimer').textContent = done ? '✓ CLEAR' : st.waiting ? '⏳ ' + fmtMin(e.start - now.min) + ' 뒤 시작'
-      : now.min > e.end ? '⚠ 예정보다 ' + fmtMin(now.min - e.end) + ' 늦음' : '⌛ ' + fmtMin(e.end - now.min) + ' 남음 · ' + entryTime(e);
+    $('qType').innerHTML = esc(QTYPE[qt].tag) + (e.type === 'move' ? ' ' + modeChip(e) : '');
+    var slot = $('qStamp');
+    slot.className = 'slot' + (qt === 'main' ? (done ? ' on' : '') : ' hide');
+    slot.textContent = done ? '参拝' : '印';
+    $('qTimer').classList.toggle('late', !done && !st.waiting && now.min > e.end);
+    $('qTimer').textContent = done ? '완료함' : st.waiting ? fmtMin(e.start - now.min) + ' 뒤 시작'
+      : now.min > e.end ? '⚠ 예정보다 ' + fmtMin(now.min - e.end) + ' 늦음' : entryTime(e) + ' · ' + fmtMin(e.end - now.min) + ' 남음';
     $('qTitle').textContent = entryTitle(e, true);
     var ob = objectives(e); // 카드엔 3개까지, 나머지는 상세에서
     $('qObjs').innerHTML = ob.slice(0, 3).map(function (o, i) { return objLi(o, !!(P.obj[e.key] || [])[i], 'obj', e.key + '#' + i); }).join('') +
-      (ob.length > 3 ? '<li class="more">＋ 목표 ' + (ob.length - 3) + '개 더 — 📜 상세</li>' : '');
+      (ob.length > 3 ? '<li class="more">할 일 ' + (ob.length - 3) + '개 더 보기</li>' : '');
     var q = e.type === 'place' && e.step.quest;
-    $('qReward').textContent = q ? '✨ 보상: ' + q.reward : e.type === 'move' && e.step.line ? '🎫 ' + e.step.line : '';
+    $('qReward').textContent = q && qt === 'main' ? '기도 · ' + q.reward : e.type === 'move' && e.step.line ? e.step.line : '';
+    $('qReward').style.color = q && qt === 'main' ? '' : 'var(--ink2)';
     // 남은 거리·시간
     var here = gps && inFukuoka([gps.lat, gps.lon]) ? [gps.lat, gps.lon] : null, txt = '';
     if (e.type === 'move' && !st.waiting && e.step.mode !== 'flight') {
@@ -494,12 +509,13 @@
     var wr = wxRange(DAYS[st.di].d.date, e.start, e.end);
     if (wr && (wr.pp >= 40 || wr.pr >= 0.2)) txt = '<span class="rain">☔ 이 시간 비 ' + wr.pp + '%' + (wr.pr ? ' · ' + wr.pr.toFixed(1) + 'mm' : '') + '</span> · ' + txt;
     $('qDist').innerHTML = txt;
-    $('qNext').innerHTML = next ? '다음 ▸ <b>' + fmtTime(next.start) + '</b> ' + esc(entryTitle(next, true)) : (st.di + 1 < DAYS.length ? '다음 챕터 ▸ ' + esc(DAYS[st.di + 1].d.theme) : '마지막 퀘스트');
-    $('qDone').textContent = done ? '✓ 완료됨 (되돌리기)' : e.type === 'move' ? '도착 ✓' : '완료 ✓';
+    $('qNext').innerHTML = next ? '<span class="lb">다음</span><span class="tm">' + fmtTime(next.start) + '</span>' + modeChip(next) + '<span class="nm">' + esc(entryTitle(next, true)) + '</span>'
+      : '<span class="lb">다음</span><span class="nm">' + (st.di + 1 < DAYS.length ? '내일 ' + esc(DAYS[st.di + 1].d.theme) : '여행 마지막 일정') + '</span>';
+    $('qDone').textContent = done ? '✓ 완료함 (취소)' : qt === 'main' ? '참배 완료' : e.type === 'move' ? '도착' : '완료';
     $('qDone').classList.toggle('done', done);
     $('qDone').onclick = function () { toggleDone(e); };
     var isQR = e.type === 'task' && /QR/.test(e.text);
-    $('qDetail').textContent = isQR ? '🛂 QR 보기' : '📜 상세';
+    $('qDetail').textContent = isQR ? '입국 QR 보기' : '자세히';
     $('qDetail').onclick = function () { if (isQR) openQR(); else openSheet(e); };
   }
   function setQType(qt) { $('quest').style.setProperty('--qc', QTYPE[qt].c); }
@@ -517,10 +533,7 @@
   function toggleDone(e) {
     var was = !!P.done[e.key];
     P.done[e.key] = !was; save();
-    if (!was) {
-      var qt = qtype(e);
-      punchIn(qt === 'main' ? '參拜 完了' : qt === 'travel' ? '도착!' : qt === 'rest' ? '푹 쉬기' : 'CLEAR');
-    }
+    if (!was) punchIn(e);
     update(false);
     drawPins(); renderHud();
   }
@@ -561,49 +574,49 @@
   }
   function sec(cls, title, items, raw) {
     if (!items || !items.length) return '';
-    return '<div class="sec ' + cls + '"><div class="hd">' + title + '</div><ul' + (raw ? ' class="obj-list"' : '') + '>' + items.join('') + '</ul></div>';
+    return '<div class="sh-h ' + cls + '">' + title + '</div><ul class="' + (raw ? 'obj-list' : 'sh-list') + '">' + items.join('') + '</ul>';
   }
   function openSheet(e) {
     if (!e) return;
     sheetEntry = e;
     var h = '', s = e.step, qt = qtype(e), done = isDone(e);
     var objs = objectives(e).map(function (o, i) { return objLi(o, !!(P.obj[e.key] || [])[i], 'obj', e.key + '#' + i); });
-    h += '<span class="sh-kind" style="background:' + QTYPE[qt].c + '">' + QTYPE[qt].tag + (done ? ' · CLEAR' : '') + '</span>';
+    h += '<span class="sh-kind" style="color:' + QTYPE[qt].c + '">' + QTYPE[qt].tag + (done ? ' · 완료' : '') + '</span> ' + modeChip(e);
     if (e.type === 'task') {
       h += '<div class="sh-title">' + esc(e.text) + '</div><div class="sh-time">' + entryTime(e) + '</div>';
-      if (/QR|입국/.test(e.text)) h += '<div class="sh-actions"><button data-qr="1" class="wide">🛂 입국 QR 보기</button></div>';
+      if (/QR|입국/.test(e.text)) h += '<div class="sh-actions"><button data-qr="1" class="wide">입국 QR 보기</button></div>';
     } else if (e.type === 'place') {
       var c = CAT[s.category] || CAT.food, q = s.quest || {};
-      h += '<div class="sh-title">' + c.icon + ' ' + esc(s.name) + '</div><div class="sh-ja" lang="ja">' + esc(s.name_ja) + '</div>';
+      h += '<div class="sh-title">' + esc(s.name) + '</div><div class="sh-ja" lang="ja">' + esc(s.name_ja) + '</div>';
       h += '<div class="sh-time">' + entryTime(e) + '</div>';
       h += wxSec(e);
-      h += sec('', '🎯 목표', objs, true);
-      if (q.reward) h += '<div class="sec reward"><div class="hd">✨ 보상 · 기도 제목</div><ul><li>' + esc(q.reward) + '</li></ul></div>';
-      h += sec('teacher', '🙏 진홍 선생님', (s.teacher || []).map(function (n) { return '<li>' + esc(n) + '</li>'; }));
-      h += sec('warn', '⚠ 주의할 것', (q.cautions || []).map(function (n) { return '<li>' + esc(n) + '</li>'; }));
+      if (q.reward && qt === 'main') h += '<div class="sh-h">기도 제목</div><div class="sh-pray">' + esc(q.reward) + '</div>';
+      h += sec('', '할 일', objs, true);
+      h += sec('teacher', '진홍 선생님', (s.teacher || []).map(function (n) { return '<li>' + esc(n) + '</li>'; }));
+      h += sec('warn', '주의할 것', (q.cautions || []).map(function (n) { return '<li>' + esc(n) + '</li>'; }));
       h += '<dl class="sh-grid">';
       if (s.address) h += '<dt>주소</dt><dd lang="ja">' + esc(s.address) + '</dd>';
       if (s.cost_jpy) h += '<dt>예상 비용</dt><dd>' + yen(s.cost_jpy) + ' <span style="color:var(--sub)">≈ ' + won(s.cost_jpy) + '</span>' + (s.cost_est ? '<span class="badge">추정</span>' : '') + '</dd>';
       h += '</dl>';
       if (s.notes.length) h += '<ul class="sh-notes">' + s.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
-      h += '<div class="sh-actions"><button data-done="1">' + (done ? '↩ 완료 취소' : '✓ 퀘스트 완료') + '</button><button data-copy="' + esc(s.name_ja) + '">📋 일본어 이름 복사</button>' +
-        (s.address ? '<button data-copy="' + esc(s.address) + '">📋 주소 복사</button>' : '') + '<button data-fly="1">🗺️ 지도에서 보기</button>' +
+      h += '<div class="sh-actions"><button data-done="1">' + (done ? '완료 취소' : qt === 'main' ? '참배 완료' : '완료') + '</button><button data-copy="' + esc(s.name_ja) + '">일본어 이름 복사</button>' +
+        (s.address ? '<button data-copy="' + esc(s.address) + '">주소 복사</button>' : '') + '<button data-fly="1">지도에서 보기</button>' +
         '<a class="primary wide" href="' + gmapsUrl(e) + '" target="_blank" rel="noopener">구글 지도 길찾기</a></div>';
       h += '<div class="sh-src">위치: ' + esc(s.coord_src) + '</div>';
     } else {
       var m = MODE[s.mode];
-      h += '<div class="sh-title">' + m.icon + ' ' + esc(s.from) + ' → ' + esc(s.to) + '</div>';
+      h += '<div class="sh-title">' + esc(s.from) + ' → ' + esc(s.to) + '</div>';
       if (s.to_ja) h += '<div class="sh-ja" lang="ja">' + esc(s.from_ja || '') + ' → ' + esc(s.to_ja) + '</div>';
       h += '<div class="sh-time">' + s.dep + ' 출발 → ' + s.arr + ' 도착 <span style="font-weight:500;color:var(--sub)">(' + fmtMin(e.end - e.start) + ')</span>' + (s.est || s.est_time ? '<span class="badge">시각 추정</span>' : '') + '</div>';
-      h += sec('', '🎯 목표', objs, true);
+      h += sec('', '할 일', objs, true);
       h += '<dl class="sh-grid">';
       if (s.line) h += '<dt>노선</dt><dd lang="ja">' + esc(s.line) + '</dd>';
       if (s.fare_jpy != null) h += '<dt>운임</dt><dd>' + (s.fare_jpy ? yen(s.fare_jpy) + ' <span style="color:var(--sub)">≈ ' + won(s.fare_jpy) + '</span>' : '무료') + (s.est_fare ? '<span class="badge">운임 추정</span>' : '') + '</dd>';
       if (s.mode !== 'flight') h += '<dt>거리</dt><dd>' + fmtDist(s.dist_m) + ' (지도 경로)</dd>';
       if (s.note) h += '<dt>메모</dt><dd>' + esc(s.note) + '</dd>';
       h += '</dl>';
-      h += '<div class="sh-actions">' + (s.mode !== 'flight' ? '<button data-run="1">▶ 경로 미리보기</button>' : '') + (s.to_ja ? '<button data-copy="' + esc(s.to_ja) + '">📋 ' + esc(s.to_ja) + '</button>' : '') +
-        '<button data-done="1">' + (done ? '↩ 도착 취소' : '✓ 도착') + '</button>' +
+      h += '<div class="sh-actions">' + (s.mode !== 'flight' ? '<button data-run="1">경로 미리보기</button>' : '') + (s.to_ja ? '<button data-copy="' + esc(s.to_ja) + '">' + esc(s.to_ja) + ' 복사</button>' : '') +
+        '<button data-done="1">' + (done ? '도착 취소' : '도착') + '</button>' +
         (m.gm ? '<a class="primary wide" href="' + gmapsUrl(e) + '" target="_blank" rel="noopener">구글 지도 길찾기 (' + (m.gm === 'walking' ? '도보' : '대중교통') + ')</a>' : '') + '</div>';
       h += '<div class="sh-src">출처: ' + esc(s.source || (s.est || s.est_time ? '추정 (엑셀 파란 글씨)' : '엑셀 일정')) + '</div>';
     }
@@ -648,7 +661,7 @@
     });
   })();
   function copy(text, btn) {
-    function done() { var o = btn.innerHTML; btn.innerHTML = '✅ 복사됨'; setTimeout(function () { btn.innerHTML = o; }, 1400); }
+    function done() { var o = btn.innerHTML; btn.innerHTML = '복사했어요'; setTimeout(function () { btn.innerHTML = o; }, 1400); }
     function fallback() { var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) {} document.body.removeChild(ta); }
     if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
   }
@@ -669,12 +682,12 @@
     if (menuTab === 'log') {
       DAYS.forEach(function (D, di) {
         var l = dayLabel(D.d.date);
-        h += '<div class="m-h">CH.' + (di + 1) + ' · ' + esc(D.d.theme) + ' <span class="small">' + l.md + ' ' + l.wd + '</span></div>';
+        h += '<div class="m-h">' + (di + 1) + '일차 ' + esc(D.d.theme) + ' <span class="small">' + l.md + ' ' + l.wd + '</span></div>';
         D.list.forEach(function (e) {
           if (e.type === 'task') return;
           var qt = qtype(e), dn = isDone(e), isCur = cur === e;
-          h += '<div class="log-row ' + (dn ? 'done ' : '') + (isCur ? 'cur ' : '') + qt + '" data-d="' + di + '" data-i="' + e.idx + '"><span class="st">' + (dn ? '✓' : isCur ? '▶' : '') + '</span>' +
-            '<span class="tx"><b>' + esc(entryTitle(e, true)) + '</b><small>' + entryTime(e) + ' · ' + QTYPE[qt].tag + '</small></span></div>';
+          h += '<div class="log-row ' + (dn ? 'done ' : '') + (isCur ? 'cur ' : '') + qt + '" data-d="' + di + '" data-i="' + e.idx + '"><span class="st">' + (dn ? (qt === 'main' ? '印' : '✓') : '') + '</span>' +
+            '<span class="tx"><b>' + esc(entryTitle(e, true)) + '</b><small>' + entryTime(e) + ' ' + QTYPE[qt].tag + ' ' + modeChip(e) + '</small></span></div>';
         });
       });
     } else if (menuTab === 'bag') {
@@ -682,21 +695,21 @@
         h += '<div class="m-h">' + esc(g.title) + '</div>';
         g.items.forEach(function (it, ii) { var id = gi + '.' + ii, on = !!P.pack[id]; h += '<div class="chk ' + (on ? 'on' : '') + '" data-pack="' + id + '"><span class="box">' + (on ? '✓' : '') + '</span><span>' + esc(it) + '</span></div>'; });
       });
-      h += '<div class="m-h">🧳 수하물 (이스타)</div><ul class="sh-notes">' + G.baggage.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
+      h += '<div class="m-h">수하물 (이스타)</div><ul class="sh-notes">' + G.baggage.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
     } else if (menuTab === 'shop') {
-      h += '<div class="m-h">🎁 사 올 것</div><div class="cards">' + G.shop.map(function (s) {
-        return '<div class="card"><b>' + esc(s.name) + '</b><div class="ja" lang="ja">' + esc(s.ja) + '</div><div class="pr">' + esc(s.price) + '</div><div class="who">👤 ' + esc(s.who) + '</div><div class="nt">' + esc(s.note) + '</div></div>';
+      h += '<div class="m-h">사 올 것</div><div class="cards">' + G.shop.map(function (s) {
+        return '<div class="card"><b>' + esc(s.name) + '</b><div class="ja" lang="ja">' + esc(s.ja) + '</div><div class="pr">' + esc(s.price) + '</div><div class="who">' + esc(s.who) + '에게</div><div class="nt">' + esc(s.note) + '</div></div>';
       }).join('') + '</div>';
-      h += '<div class="sec warn"><div class="hd">⛔ 사지 말 것 (한국 반입 금지)</div><ul>' + G.shop_avoid.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
-      h += '<div class="m-h">🍜 먹어 볼 것</div>' + G.food.map(function (f) { return '<div class="log-row side"><span class="st">🍴</span><span class="tx"><b>' + esc(f.name) + '</b><small>' + esc(f.where) + '</small></span></div>'; }).join('');
+      h += '<div class="avoid"><b>사지 말 것 (한국 반입 금지)</b><ul class="sh-list">' + G.shop_avoid.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
+      h += '<div class="m-h">먹어 볼 것</div>' + G.food.map(function (f) { return '<div class="log-row"><span class="tx"><b>' + esc(f.name) + '</b><small>' + esc(f.where) + '</small></span></div>'; }).join('');
     } else if (menuTab === 'rule') {
       G.etiquette.forEach(function (g) { h += '<div class="m-h">' + esc(g.title) + '</div><ul class="sh-notes">' + g.items.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; });
       h += '<p class="small">조사 출처: ' + esc(G.sources.join(' · ')) + '</p>';
     } else if (menuTab === 'wx') {
-      h += '<div class="m-h">☔ 날씨 예보 (후쿠오카 시내)</div><p class="small">' + esc(wxStamp()) + '</p>';
+      h += '<div class="m-h">날씨 예보 (후쿠오카 시내)</div><p class="small">' + esc(wxStamp()) + '</p>';
       DAYS.forEach(function (D, di) {
         var l = dayLabel(D.d.date), dw = dayWx(D.d.date);
-        h += '<div class="m-h">CH.' + (di + 1) + ' · ' + l.md + ' ' + l.wd + ' <span class="small">' + (dw ? esc(wxLine(D.d.date).replace(/<[^>]+>/g, '')) : '') + '</span></div>';
+        h += '<div class="m-h">' + (di + 1) + '일차 ' + l.md + ' ' + l.wd + ' <span class="small">' + (dw ? esc(wxLine(D.d.date).replace(/<[^>]+>/g, '')) : '') + '</span></div>';
         for (var hr = 6; hr <= 23; hr += 2) {
           var x = wxAt(D.d.date, hr * 60); if (!x) continue;
           h += '<div class="wx-row"><span>' + String(hr).padStart(2, '0') + ':00</span><span class="bar"><i style="width:' + x.pp + '%"></i></span><span>☔ ' + x.pp + '%</span><span>' + WXI(x.code) + ' ' + Math.round(x.temp) + '°</span></div>';
@@ -714,7 +727,7 @@
       rows += '<tr><td>식비·새전·입장료 (엑셀 추정)</td><td>' + yen(costs) + ' ≈ ' + won(costs) + '</td></tr>';
       var total = fixed + (fares + costs) * RATE;
       rows += '<tr class="total"><td>합계</td><td>' + krw(total) + '</td></tr>';
-      h += '<div class="m-h">💰 예산</div><table class="money">' + rows + '</table><p class="small">1엔 = ' + RATE + '원 (' + esc(T.rate_note) + ') · 기념품·간식 제외</p>';
+      h += '<div class="m-h">예산</div><table class="money">' + rows + '</table><p class="small">1엔 = ' + RATE + '원 (' + esc(T.rate_note) + ') · 기념품·간식 제외</p>';
     }
     $('menuBody').innerHTML = h; $('menuBody').scrollTop = 0;
   }
@@ -806,16 +819,20 @@
   // 테마
   function themeUI() {
     var d = isDark();
-    $('bTheme').querySelector('.i').textContent = d ? '☀️' : '🌙';
-    $('bTheme').querySelector('.t').textContent = d ? '라이트' : '다크';
-    document.querySelector('meta[name=theme-color]').content = d ? '#0b1020' : '#eef1f7';
+    $('themeIc').setAttribute('href', d ? '#i-sun' : '#i-moon');
+    $('bTheme').querySelector('.t').textContent = d ? '낮 모드' : '밤 모드';
+    document.querySelector('meta[name=theme-color]').content = d ? '#121831' : '#eef0f4';
   }
   $('bTheme').addEventListener('click', function () {
     var t = isDark() ? 'light' : 'dark'; document.documentElement.dataset.theme = t;
     try { localStorage.setItem('theme', t); } catch (e) {}
     themeUI(); drawLines();
   });
-  matchMedia('(prefers-color-scheme: light)').addEventListener('change', function () { themeUI(); drawLines(); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (ev) {
+    var saved = null; try { saved = localStorage.getItem('theme'); } catch (e) {}
+    if (saved) return;
+    document.documentElement.dataset.theme = ev.matches ? 'dark' : 'light'; themeUI(); drawLines(); drawRainFor();
+  });
 
   var toastT = null;
   function toast(msg, ms) { var t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('show'); }, ms || 2500); }

@@ -6,7 +6,7 @@ const TILES = 'fk-tiles';
 const MAX_TILES = 3000;
 const FILES = [
   './', './index.html', './app.js', './app.css', './data.js', './manifest.webmanifest',
-  './vendor/leaflet.js', './vendor/leaflet.css',
+  './vendor/leaflet.js', './vendor/leaflet.css', './vendor/jua-sub.woff2',
   './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png'
 ];
 
