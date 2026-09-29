@@ -13,6 +13,7 @@
     jr:         { c: '#E60012', label: 'JR',           icon: '🚆', gm: 'transit' },
     nishitetsu: { c: '#1B5AA8', label: '니시테츠',     icon: '🚃', gm: 'transit' },
     bus:        { c: '#DD873D', label: '버스',         icon: '🚌', gm: 'transit' },
+    krail:      { c: '#0090D2', label: '전철',         icon: '🚆', gm: 'transit' },
     walk:       { c: 'var(--walk)', label: '도보',     icon: '🚶', gm: 'walking', dash: '1 9' }
   };
   var CAT = {
@@ -21,7 +22,10 @@
     hotel:  { c: '#2F5597', icon: '🏨', label: '숙소' },
     food:   { c: '#16833F', icon: '🍜', label: '식당' },
     bath:   { c: '#1F6FB2', icon: '♨️', label: '목욕탕' },
-    bar:    { c: '#C2255C', icon: '🏳️‍🌈', label: '바' }
+    bar:    { c: '#C2255C', icon: '🏳️‍🌈', label: '바' },
+    money:  { c: '#B08900', icon: '💴', label: '환전' },
+    shop:   { c: '#E8590C', icon: '🛍️', label: '쇼핑' },
+    pharmacy: { c: '#2B8A3E', icon: '💊', label: '약국' }
   };
   var QTYPE = {
     main:   { tag: '기도터',   c: 'var(--red)' },
@@ -309,9 +313,17 @@
       });
     });
   }
-  function dayBounds(di) {
-    var b = L.latLngBounds([]);
+  function regionOf(e) { // 장소 없는 할 일은 앞(없으면 뒤) 항목의 나라
+    var list = DAYS[e.day].list, i, p;
+    for (i = e.idx; i >= 0; i--) if (list[i].step && list[i].step.mode !== 'flight' && (p = entryPoint(list[i], 'end'))) return isKorea(p);
+    for (i = e.idx; i < list.length; i++) if (list[i].step && list[i].step.mode !== 'flight' && (p = entryPoint(list[i], 'start'))) return isKorea(p);
+    return false;
+  }
+  function dayBounds(di) { // 그날 한국·일본 중 지금 있는 쪽(아니면 일본)만 맞춤
+    var b = L.latLngBounds([]), kr = cur && cur.day === di ? regionOf(cur) : false;
     DAYS[di].list.forEach(function (e) {
+      var p = e.step && e.step.mode !== 'flight' ? entryPoint(e, 'start') : null;
+      if (p && isKorea(p) !== kr) return;
       if (e.type === 'move' && e.step.mode !== 'flight') e.step.geom.forEach(function (p) { b.extend(p); });
       if (e.type === 'place') b.extend([e.step.lat, e.step.lon]);
     });
@@ -436,7 +448,10 @@
     if (e.type === 'place') return Math.max(0, hav(p, [e.step.lat, e.step.lon]) - e.step.radius);
     return Infinity;
   }
-  function inFukuoka(p) { return p[0] > 33.3 && p[0] < 33.95 && p[1] > 130.0 && p[1] < 130.8; }
+  function isKorea(p) { return p[1] < 128; }
+  function inArea(p) { // 후쿠오카 또는 인천공항~소새울 (한국 쪽 이동)
+    return (p[0] > 33.3 && p[0] < 33.95 && p[1] > 130.0 && p[1] < 130.8) || (p[0] > 37.35 && p[0] < 37.7 && p[1] > 126.3 && p[1] < 126.95);
+  }
   function computeCurrent() {
     var now = tokyoNow(), di = tripDayIndex(now.date);
     if (di < 0) return { di: di, now: now, e: null };
@@ -446,7 +461,7 @@
     var best = byTime;
     // 위치가 있으면 거리+시각 점수로 (100m = 1점, 앞뒤 15분 여유 밖 10분 = 1점), 비슷하면 시각 기준 우선
     // 입국 수속·탑승 수속 같은 할 일은 장소가 없으니 시각이 우선 (GPS로 옆 구간에 뺏기지 않게)
-    if (gps && byTime.type !== 'task' && gps.acc < 500 && inFukuoka([gps.lat, gps.lon])) {
+    if (gps && byTime.type !== 'task' && gps.acc < 500 && inArea([gps.lat, gps.lon])) {
       var p = [gps.lat, gps.lon], bs = Infinity;
       list.forEach(function (e) {
         var d = distToEntry(p, e); if (!isFinite(d)) return;
@@ -503,7 +518,7 @@
     $('qReward').textContent = q && qt === 'main' ? '기도 · ' + q.reward : e.type === 'move' && e.step.line ? e.step.line : '';
     $('qReward').style.color = q && qt === 'main' ? '' : 'var(--ink2)';
     // 남은 거리·시간
-    var here = gps && inFukuoka([gps.lat, gps.lon]) ? [gps.lat, gps.lon] : null, txt = '';
+    var here = gps && inArea([gps.lat, gps.lon]) ? [gps.lat, gps.lon] : null, txt = '';
     if (e.type === 'move' && !st.waiting && e.step.mode !== 'flight') {
       var rem = here ? project(here, e.step.geom) : null;
       var dist = rem && rem.d < 300 ? rem.remain : here ? hav(here, e.step.b) : e.step.dist_m;
@@ -601,7 +616,8 @@
       if (/QR/.test(e.text)) h += '<div class="sh-actions"><button data-qr="1" class="wide">입국 QR 보기</button></div>';
     } else if (e.type === 'place') {
       var c = CAT[s.category] || CAT.food, q = s.quest || {};
-      h += '<div class="sh-title">' + esc(s.name) + '</div><div class="sh-ja" lang="ja">' + esc(s.name_ja) + '</div>';
+      var kr = isKorea([s.lat, s.lon]); // 한국 장소엔 일본어 이름·복사 없음
+      h += '<div class="sh-title">' + esc(s.name) + '</div>' + (kr ? '' : '<div class="sh-ja" lang="ja">' + esc(s.name_ja) + '</div>');
       h += '<div class="sh-time">' + entryTime(e) + '</div>';
       h += wxSec(e);
       if (q.reward && qt === 'main') h += '<div class="sh-h">기도 제목</div><div class="sh-pray">' + esc(q.reward) + '</div>';
@@ -613,7 +629,7 @@
       if (s.cost_jpy) h += '<dt>예상 비용</dt><dd>' + yen(s.cost_jpy) + ' <span style="color:var(--sub)">≈ ' + won(s.cost_jpy) + '</span>' + (s.cost_est ? '<span class="badge">추정</span>' : '') + '</dd>';
       h += '</dl>';
       if (s.notes.length) h += '<ul class="sh-notes">' + s.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
-      h += '<div class="sh-actions"><button data-done="1">' + (done ? '완료 취소' : qt === 'main' ? '참배 완료' : '완료') + '</button><button data-copy="' + esc(s.name_ja) + '">일본어 이름 복사</button>' +
+      h += '<div class="sh-actions"><button data-done="1">' + (done ? '완료 취소' : qt === 'main' ? '참배 완료' : '완료') + '</button>' + (kr ? '' : '<button data-copy="' + esc(s.name_ja) + '">일본어 이름 복사</button>') +
         (s.address ? '<button data-copy="' + esc(s.address) + '">주소 복사</button>' : '') + '<button data-fly="1">지도에서 보기</button>' +
         '<a class="primary wide" href="' + gmapsUrl(e) + '" target="_blank" rel="noopener">구글 지도 길찾기</a></div>';
       h += '<div class="sh-src">위치: ' + esc(s.coord_src) + '</div>';
@@ -836,7 +852,7 @@
   // 경로 이탈 200m — 조용히
   var offState = { count: 0, shown: false };
   function checkOffRoute(st) {
-    if (!gps || st.di < 0 || gps.acc > 100 || !inFukuoka([gps.lat, gps.lon])) return;
+    if (!gps || st.di < 0 || gps.acc > 100 || !inArea([gps.lat, gps.lon])) return;
     var p = [gps.lat, gps.lon], d = Infinity;
     DAYS[st.di].list.forEach(function (e) { d = Math.min(d, distToEntry(p, e)); });
     if (d > 200) { offState.count++; if (offState.count >= 2 && !offState.shown) { offState.shown = true; toast('경로에서 ' + fmtDist(d) + ' 벗어났어요', 6000); } }
@@ -884,7 +900,7 @@
       : '<div class="qr-empty">아직 저장한 캡처가 없어요.<br>Visit Japan Web에서 QR 화면을 캡처한 뒤<br>"QR 캡처 불러오기"를 누르세요.</div>';
   }
   // 입국 QR 버튼은 출발 전 ~ 첫날 입국 수속 끝나고 90분(연착 여유)까지만. 그 뒤엔 가방 탭에서
-  var QR_TASK = (function () { var d = DAYS[0].d.date, t = (T.tasks[d] || []).find(function (x) { return /QR/.test(x.text); }); return t && { date: d, end: hm(t.end) }; })();
+  var QR_TASK = (function () { var d = DAYS[0].d.date, t = (T.tasks[d] || []).filter(function (x) { return /QR/.test(x.text); }).pop(); return t && { date: d, end: hm(t.end) }; })();
   function qrNeeded(now) { return !!QR_TASK && (now.date < QR_TASK.date || (now.date === QR_TASK.date && now.min < QR_TASK.end + 90)); }
   function openQR() { qrRender(); $('qr').classList.add('show'); $('qr').setAttribute('aria-hidden', 'false'); }
   function closeQR() { $('qr').classList.remove('show'); $('qr').setAttribute('aria-hidden', 'true'); }

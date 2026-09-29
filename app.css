@@ -18,6 +18,9 @@
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
   font-family: "Pretendard", "Samsung Sans", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; overscroll-behavior: none; }
 body { position: fixed; inset: 0; overflow: hidden; }
+/* 한국어는 어절(띄어쓰기) 단위로만 줄바꿈 — '이스/타항공'처럼 단어 중간에서 끊기지 않게. 한 어절이 한 줄보다 길 때만 쪼갬 */
+html, body, input, textarea, button { word-break: keep-all; overflow-wrap: break-word; line-break: strict; }
+.q-title, .sh-title, .intro-title, .m-h { text-wrap: balance; }
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible, a:focus-visible, label:focus-within { outline: 3px solid var(--blue); outline-offset: 2px; }
 #map { position: absolute; inset: 0; background: var(--bg); }
@@ -176,7 +179,7 @@ button:focus-visible, a:focus-visible, label:focus-within { outline: 3px solid v
 .sh-grid dd { margin: 0; }
 .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 5px; background: var(--paper2); color: var(--ink2); margin-left: 4px; vertical-align: 1px; }
 .obj-list { list-style: none; padding-left: 0; margin: 2px 0 6px; font-size: 14.5px; }
-.sh-src { font-size: 12px; color: var(--mute); margin-top: 8px; word-break: break-all; }
+.sh-src { font-size: 12px; color: var(--mute); margin-top: 8px; overflow-wrap: anywhere; }
 .sh-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 14px 0 4px; }
 .sh-actions button, .sh-actions a { display: flex; align-items: center; justify-content: center; min-height: 50px; border-radius: 14px;
   border: 1px solid var(--line); background: var(--paper2); font-size: 14.5px; font-weight: 700; text-decoration: none; color: var(--ink); text-align: center; line-height: 1.15; padding: 0 6px; }
