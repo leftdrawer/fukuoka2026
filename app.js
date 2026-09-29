@@ -1022,6 +1022,15 @@
   var CAT_OF = { shrine: '입장·새전', temple: '입장·새전', food: '식비', bar: '식비', bath: '목욕탕', shop: '쇼핑·선물', pharmacy: '쇼핑·선물' };
   function expLoad() { try { return JSON.parse(localStorage.getItem('fk-exp') || '[]'); } catch (e) { return []; } }
   function expStore(list) { try { localStorage.setItem('fk-exp', JSON.stringify(list)); return true; } catch (e) { toast('저장 공간이 부족해요'); return false; } }
+  (function () { // 대화로 전해 받은 지출(data.js)을 폰 목록에 한 번만 넣기 — 지우면 다시 안 들어옴
+    var seeded = {}; try { seeded = JSON.parse(localStorage.getItem('fk-exp-seed') || '{}'); } catch (e) {}
+    var add = (G.seed_exp || []).filter(function (x) { return !seeded[x.id]; });
+    if (!add.length) return;
+    var list = expLoad();
+    add.forEach(function (x) { seeded[x.id] = 1; if (!list.some(function (y) { return y.id === x.id; })) list.push(Object.assign({}, x)); });
+    list.sort(function (p, q) { return p.t < q.t ? -1 : p.t > q.t ? 1 : 0; });
+    if (expStore(list)) try { localStorage.setItem('fk-exp-seed', JSON.stringify(seeded)); } catch (e) {}
+  })();
   function walletLoad() { try { var v = localStorage.getItem('fk-wallet'); return v == null ? null : +v; } catch (e) { return null; } }
   var rdb = null;
   function rstore(mode) {
