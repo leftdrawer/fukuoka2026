@@ -113,6 +113,22 @@
     o.push(s.to + '에서 내리기');
     return o;
   }
+  // 지갑 한 줄: 이 퀘스트에 어떤 돈이 필요한지 (버스는 동전·천엔권, 새전은 5엔 등)
+  function coinTip(e) {
+    if (!e || !e.step) return '';
+    var s = e.step;
+    if (e.type === 'move') {
+      if (s.mode === 'bus') return '버스: ' + yen(s.fare_jpy || 0) + ' 딱 맞게 — 동전·천엔권만 (1만엔·5천엔권은 교환기에서 안 바뀜)';
+      if (s.pay === 'cash' && (s.mode === 'jr' || s.mode === 'nishitetsu' || s.mode === 'subway'))
+        return '표 ' + yen(s.fare_jpy || 0) + ' — 작은 역 매표기는 천엔권·동전, 큰 역은 1만엔권도 OK';
+      return '';
+    }
+    if (e.type !== 'place' || s.lon < 128) return '';
+    if (s.category === 'shrine' || s.category === 'temple') return '새전 5엔(ご縁) — 사랑·인연 기도엔 5·15·25·45엔, 10엔(遠縁)은 피하기' + (s.cost_jpy ? ' · 입장·참배 ' + yen(s.cost_jpy) : '');
+    if (s.category === 'bath') return '현금 ' + yen(s.cost_jpy || 550) + ' + 옷장용 100엔 동전';
+    if (s.pay === 'cash') return '현금만 — 천엔권·동전으로 (1만엔권은 편의점에서 미리 깨기)';
+    return '';
+  }
   function entryPoint(e, which) {
     if (e.type === 'place') return [e.step.lat, e.step.lon];
     if (e.type === 'move') return which === 'end' ? e.step.b : e.step.a;
@@ -497,6 +513,7 @@
       $('qDone').textContent = before ? '준비물 보기' : '일정 보기'; $('qDone').classList.remove('done'); $('qDetail').textContent = '일정';
       $('qDone').onclick = function () { openMenu(before ? 'bag' : 'log'); };
       $('qDetail').onclick = function () { openMenu('log'); };
+      $('qCoin').textContent = '';
       setOrb(before ? 'shaping' : 'breathing');
       return;
     }
@@ -514,6 +531,7 @@
     var ob = objectives(e); // 카드엔 3개까지, 나머지는 상세에서
     $('qObjs').innerHTML = ob.slice(0, 3).map(function (o, i) { return objLi(o, !!(P.obj[e.key] || [])[i], 'obj', e.key + '#' + i); }).join('') +
       (ob.length > 3 ? '<li class="more">할 일 ' + (ob.length - 3) + '개 더 보기</li>' : '');
+    var ct = coinTip(e); $('qCoin').textContent = ct ? '🪙 ' + ct : '';
     var q = e.type === 'place' && e.step.quest;
     $('qReward').textContent = q && qt === 'main' ? '기도 · ' + q.reward : e.type === 'move' && e.step.line ? e.step.line : '';
     $('qReward').style.color = q && qt === 'main' ? '' : 'var(--ink2)';
@@ -623,6 +641,7 @@
       h += wxSec(e);
       if (q.reward && qt === 'main') h += '<div class="sh-h">기도 제목</div><div class="sh-pray">' + esc(q.reward) + '</div>';
       h += sec('', '할 일', objs, true);
+      if (coinTip(e)) h += sec('', '🪙 지갑', ['<li>' + esc(coinTip(e)) + '</li>']);
       h += sec('teacher', '진홍 선생님', (s.teacher || []).map(function (n) { return '<li>' + esc(n) + '</li>'; }));
       h += sec('warn', '주의할 것', (q.cautions || []).map(function (n) { return '<li>' + esc(n) + '</li>'; }));
       h += '<dl class="sh-grid">';
@@ -640,6 +659,7 @@
       if (s.to_ja) h += '<div class="sh-ja" lang="ja">' + esc(s.from_ja || '') + ' → ' + esc(s.to_ja) + '</div>';
       h += '<div class="sh-time">' + s.dep + ' 출발 → ' + s.arr + ' 도착 <span style="font-weight:500;color:var(--sub)">(' + fmtMin(e.end - e.start) + ')</span>' + (s.est || s.est_time ? '<span class="badge">시각 추정</span>' : '') + '</div>';
       h += sec('', '할 일', objs, true);
+      if (coinTip(e)) h += sec('', '🪙 지갑', ['<li>' + esc(coinTip(e)) + '</li>']);
       h += '<dl class="sh-grid">';
       if (s.line) h += '<dt>노선</dt><dd lang="ja">' + esc(s.line) + '</dd>';
       if (s.pay) h += '<dt>결제</dt><dd>' + payChip(e) + ' ' + (s.pay === 'card' ? esc(G.payment.card) + ' 터치' : s.pay === 'cash' ? '현금' : '무료') + '</dd>';
@@ -1024,7 +1044,8 @@
   function expStore(list) { try { localStorage.setItem('fk-exp', JSON.stringify(list)); return true; } catch (e) { toast('저장 공간이 부족해요'); return false; } }
   (function () { // 대화로 전해 받은 지출(data.js)을 폰 목록에 한 번만 넣기 — 지우면 다시 안 들어옴
     var seeded = {}; try { seeded = JSON.parse(localStorage.getItem('fk-exp-seed') || '{}'); } catch (e) {}
-    var add = (G.seed_exp || []).filter(function (x) { return !seeded[x.id]; });
+    var add = (G.seed_exp || []).filter(function (x) { return !seeded[x.id]; }), w = G.seed_wallet;
+    if (w && !seeded[w.id]) { seeded[w.id] = 1; try { localStorage.setItem('fk-wallet', String(w.jpy)); localStorage.setItem('fk-exp-seed', JSON.stringify(seeded)); } catch (e) {} }
     if (!add.length) return;
     var list = expLoad();
     add.forEach(function (x) { seeded[x.id] = 1; if (!list.some(function (y) { return y.id === x.id; })) list.push(Object.assign({}, x)); });
@@ -1123,7 +1144,10 @@
       '<label class="w-row"><span>가진 현금 (환전한 엔 전부)</span><span><input id="walletJpy" type="number" inputmode="numeric" min="0" value="' + (have == null ? '' : have) + '" placeholder="30000"> 엔</span></label>' +
       '<div class="w-row"><span>현금으로 쓴 돈</span><b>' + yen(cashJ) + (cashK ? ' + ' + krw(cashK) : '') + '</b></div>' +
       '<div class="w-row big"><span>남은 현금</span><b class="' + (left != null && left < 0 ? 'neg' : '') + '">' + (left == null ? '위에 가진 현금 입력' : yen(left) + ' <span class="small">≈ ' + won(left) + '</span>') + '</b></div>' +
-      '<div class="w-row"><span>카드로 쓴 돈</span><b>' + yen(cardJ) + (cardK ? ' + ' + krw(cardK) : '') + '</b></div></div>';
+      '<div class="w-row"><span>카드로 쓴 돈</span><b>' + yen(cardJ) + (cardK ? ' + ' + krw(cardK) : '') + '</b></div></div>' +
+      (G.seed_wallet ? '<p class="small">처음 가진 현금: ' + esc(G.seed_wallet.note) + '</p>' : '') +
+      (G.exchanges || []).map(function (x) { return '<p class="small">환전 ' + esc(x.t.slice(5)) + ' ' + esc(x.where) + ': ' + yen(x.jpy) + ' = ' + krw(x.krw) + ' (1엔 ' + (x.krw / x.jpy).toFixed(2) + '원)</p>'; }).join('') +
+      '<div class="m-h">동전·지폐 가이드</div><ul class="sh-list">' + (G.coin_guide || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
     h += '<div class="m-h">계획 vs 실제</div><table class="money">' +
       '<tr><td>미리 낸 돈 (항공·숙소·eSIM·보험·한국 교통)</td><td>' + krw(prepaid) + '</td></tr>' +
       '<tr><td>여행 중 기록한 지출 (' + ex.length + '건)</td><td>≈ ' + krw(spent) + '</td></tr>' +
