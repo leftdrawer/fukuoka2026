@@ -16,7 +16,7 @@
 - 「1. 다음 여행에 쓸 교훈」: 다음 여행에도 통할 것만 보탠다
 - 「2. 앱 개선 할 일」: 기록에서 나온 개선 거리를 체크리스트로 보태고, 한 것은 [x]
 - 「3. 시간순 기록」: 맨 아래에 「### HH:MM — 제목」으로 이어 적는다. 요청 / 남긴 말(말투 그대로 인용) / 앱에 반영 / 그 밖에
-- 시각은 `TZ=Asia/Tokyo date`로 확인한다
+- 시각은 `TZ=Asia/Tokyo date`로 확인한다 (집 컴퓨터 Windows Git Bash에서는 이게 UTC를 보여 틀린다 → `python -c "from datetime import *; print(datetime.now(timezone(timedelta(hours=9))))"`)
 
 ## 작업 원칙
 
@@ -26,3 +26,5 @@
 - 지출은 `guide.seed_exp`에 새 id로 추가 (이미 폰에 들어간 id는 고쳐도 폰에 반영 안 됨), 지갑은 `guide.coin_guide` 첫 줄
 - 커밋 메시지는 한국어
 - 이 저장소는 공개(public)다
+- 집 컴퓨터 세션은 `_build/`(git 제외)로 data.js를 다시 만든다. 클라우드 세션이 data.js를 직접 고쳤으면 LOG.md에 적어 두고, 집 컴퓨터 세션이 build.py·guide.py로 옮긴다 (안 옮기고 빌드하면 지워짐)
+- 테스트(`_build/test.mjs`)가 하나라도 FAIL이면 푸시하지 않는다
