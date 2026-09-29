@@ -482,6 +482,7 @@
       $('qDone').textContent = before ? '준비물 보기' : '일정 보기'; $('qDone').classList.remove('done'); $('qDetail').textContent = '일정';
       $('qDone').onclick = function () { openMenu(before ? 'bag' : 'log'); };
       $('qDetail').onclick = function () { openMenu('log'); };
+      setOrb(before ? 'shaping' : 'breathing');
       return;
     }
     var list = DAYS[st.di].list, next = list[e.idx + 1], qt = qtype(e), done = isDone(e);
@@ -490,6 +491,7 @@
     var slot = $('qStamp');
     slot.className = 'slot' + (qt === 'main' ? (done ? ' on' : '') : ' hide');
     slot.textContent = done ? '参拝' : '印';
+    setOrb(qt === 'main' ? null : st.waiting ? 'breathing' : ORB[qt]);
     $('qTimer').classList.toggle('late', !done && !st.waiting && now.min > e.end);
     $('qTimer').textContent = done ? '완료함' : st.waiting ? fmtMin(e.start - now.min) + ' 뒤 시작'
       : now.min > e.end ? '⚠ 예정보다 ' + fmtMin(now.min - e.end) + ' 늦음' : entryTime(e) + ' · ' + fmtMin(e.end - now.min) + ' 남음';
@@ -526,6 +528,9 @@
     $('qDetail').textContent = isQR ? '입국 QR 보기' : '자세히';
     $('qDetail').onclick = function () { if (isQR) openQR(); else openSheet(e); };
   }
+  // 지금 상태 구슬 (thinking-orbs): 이동 = 궤도, 수속 = 맞춰지는 큐브, 들를 곳 = 물결 띠, 쉬기·기다림 = 숨쉬는 고리. 기도터는 도장 자리라 없음
+  var ORB = { travel: 'working', task: 'solving', side: 'composing', rest: 'breathing' };
+  function setOrb(state) { $('qOrb').classList.toggle('hide', !state); if (window.Orb) Orb.set($('qOrb'), state, 64); }
   function setQType(qt) { $('quest').style.setProperty('--qc', QTYPE[qt].c); }
   function objLi(text, on, kind, id) { return '<li class="' + (on ? 'on' : '') + '" data-kind="' + kind + '" data-id="' + esc(id) + '"><span class="box">' + (on ? '✓' : '') + '</span><span>' + esc(text) + '</span></li>'; }
   function toggleObj(kind, id) {
@@ -774,15 +779,16 @@
   var meIcon = L.divIcon({ className: '', iconSize: [60, 60], iconAnchor: [30, 30],
     html: '<div class="me"><svg class="cone" viewBox="0 0 60 60"><defs><radialGradient id="cg" cx="50%" cy="100%" r="100%"><stop offset="0" stop-color="#1a73e8" stop-opacity=".55"/><stop offset="1" stop-color="#1a73e8" stop-opacity="0"/></radialGradient></defs><path d="M30 30 L16 2 A30 30 0 0 1 44 2 Z" fill="url(#cg)"/></svg><div class="dot"></div></div>' });
   function setBtn(id, on, label) { var b = $(id); b.setAttribute('aria-pressed', on ? 'true' : 'false'); if (label) b.querySelector('.t').textContent = label; }
+  function seeking(on) { $('bLocate').classList.toggle('seeking', on); if (window.Orb) Orb.set($('locOrb'), on ? 'searching' : null, 20); }
   function gpsStart() {
     if (watchId != null) return;
     if (!('geolocation' in navigator)) { toast('이 브라우저는 위치를 지원하지 않아요'); return; }
     watchId = navigator.geolocation.watchPosition(onPos, onPosErr, { enableHighAccuracy: true, maximumAge: 3000, timeout: 30000 });
-    setBtn('bGpsOff', true, 'GPS 끄기'); compassStart();
+    setBtn('bGpsOff', true, 'GPS 끄기'); compassStart(); seeking(true);
   }
   function gpsStop() {
     if (watchId != null) navigator.geolocation.clearWatch(watchId);
-    watchId = null; gps = null;
+    watchId = null; gps = null; seeking(false);
     if (meMarker) { map.removeLayer(meMarker); map.removeLayer(accCircle); meMarker = accCircle = null; }
     setBtn('bGpsOff', false, 'GPS 켜기'); follow = false; setBtn('bFollow', false); compassStop();
     offState = { count: 0, shown: false }; update(false);
@@ -791,6 +797,7 @@
     var c = p.coords, gh = (c.heading != null && !isNaN(c.heading) && (c.speed || 0) > 0.7) ? c.heading : null;
     gps = { lat: c.latitude, lon: c.longitude, acc: c.accuracy, gpsHeading: gh, heading: gh != null ? gh : lastCompass };
     var ll = [gps.lat, gps.lon];
+    seeking(false);
     if (!meMarker) {
       accCircle = L.circle(ll, { radius: gps.acc, color: '#1a73e8', weight: 1, fillColor: '#1a73e8', fillOpacity: 0.12, interactive: false }).addTo(map);
       meMarker = L.marker(ll, { icon: meIcon, zIndexOffset: 2000, interactive: false }).addTo(map);

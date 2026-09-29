@@ -96,6 +96,12 @@ button:focus-visible, a:focus-visible, label:focus-within { outline: 3px solid v
 .slot { position: absolute; right: 14px; top: 14px; width: 62px; height: 62px; border-radius: 50%; border: 2px dashed color-mix(in srgb, var(--ink) 22%, transparent);
   display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 15px; color: color-mix(in srgb, var(--ink) 25%, transparent); }
 .slot.hide { display: none; }
+/* thinking-orbs: 도장이 없는 퀘스트는 그 자리에 지금 상태를 보여주는 점 구슬 */
+.orb { position: absolute; right: 13px; top: 13px; width: 64px; height: 64px; pointer-events: none; }
+.orb.hide, .fab .ic-orb { display: none; }
+.fab .ic-orb { width: 22px; height: 22px; }
+.fab.seeking .ic-orb { display: block; }
+.fab.seeking .ic { display: none; }
 .slot.on { border: 3px double var(--red); color: var(--red); transform: rotate(-12deg); background: color-mix(in srgb, var(--red) 8%, transparent); }
 .q-top { display: flex; align-items: baseline; gap: 8px; padding-right: 76px; }
 .q-type { font-size: 13px; font-weight: 800; color: var(--qc, var(--ink)); }

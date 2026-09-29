@@ -63,13 +63,14 @@
   <div class="col right">
     <button id="bGpsOff" class="fab" title="GPS 켜기/끄기"><svg class="ic"><use href="#i-gps"/></svg><span class="t">GPS 켜기</span></button>
     <button id="bFollow" class="fab" aria-pressed="false" title="따라가기"><svg class="ic"><use href="#i-follow"/></svg><span class="t">따라가기</span></button>
-    <button id="bLocate" class="fab" title="내 위치로 이동"><svg class="ic"><use href="#i-locate"/></svg><span class="t">내 위치</span></button>
+    <button id="bLocate" class="fab" title="내 위치로 이동"><svg class="ic"><use href="#i-locate"/></svg><canvas id="locOrb" class="ic-orb" aria-hidden="true"></canvas><span class="t">내 위치</span></button>
   </div>
 </div>
 
 <section id="quest" aria-label="지금 할 일">
   <div class="q-inner">
     <div id="qStamp" class="slot" aria-hidden="true"></div>
+    <canvas id="qOrb" class="orb hide" aria-hidden="true"></canvas>
     <div class="q-top"><span id="qType" class="q-type"></span><span id="qTimer" class="q-timer"></span></div>
     <div id="qTitle" class="q-title"></div>
     <ul id="qObjs" class="q-objs"></ul>
@@ -132,6 +133,7 @@
 </section>
 
 <script src="vendor/leaflet.js"></script>
+<script src="vendor/orbs.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 <script>
