@@ -591,6 +591,7 @@
       lastKey = key;
     }
     checkOffRoute(st);
+    checkAlerts(st);
   }
 
   // ------------------------------------------------------------ 상세 시트
@@ -712,6 +713,9 @@
   function renderMenu() {
     var h = '';
     if (menuTab === 'log') {
+      var np = window.Notification ? Notification.permission : 'none';
+      h += '<div class="m-h">출발 알림</div><p class="small">장소 끝나기 10분 전·끝날 때, 전철·버스 출발 5분 전, 공항 절차마다 진동과 알림. 앱이 열려 있을 때만 울려요 — 확실하게 하려면 캘린더에 넣기.</p>' +
+        '<div class="sh-actions"><button data-notify="1">' + (np === 'granted' ? '폰 알림 켜짐 ✓' : '폰 알림 켜기') + '</button><button data-ics="1" class="primary">캘린더에 알림 넣기</button></div>';
       DAYS.forEach(function (D, di) {
         var l = dayLabel(D.d.date);
         h += '<div class="m-h">' + (di + 1) + '일차 ' + esc(D.d.theme) + ' <span class="small">' + l.md + ' ' + l.wd + '</span></div>';
@@ -789,6 +793,8 @@
     var r = ev.target.closest('.log-row[data-d]');
     if (r) { var e = DAYS[+r.dataset.d].list[+r.dataset.i]; closeMenu(true); openSheet(e); var p = entryPoint(e, 'start'); if (p) whipTo(p); return; }
     if (ev.target.closest('[data-qr]')) { closeMenu(); return openQR(); }
+    if (ev.target.closest('[data-notify]')) return askNotify();
+    if (ev.target.closest('[data-ics]')) return downloadIcs();
     var x = ev.target.closest('[data-exp]');
     if (x) { var it = expLoad().find(function (y) { return y.id === x.dataset.exp; }); if (it) openExp(it); return; }
     if (ev.target.closest('[data-exp-new]')) return openExp(expPrefill(lastState && lastState.e, false));
@@ -946,6 +952,72 @@
   });
   window.__openQR = openQR;
 
+  // ------------------------------------------------------------ 출발 알림: 장소 끝나기 10분 전·끝날 때, 전철·버스 출발 5분 전, 공항 절차 시작 때
+  // 앱이 열려 있을 때만 울림 (웹의 한계) → 확실하게 하려면 캘린더(.ics)로 폰 캘린더 알람에 넣기
+  var TRANSIT = { jr: 1, subway: 1, nishitetsu: 1, bus: 1, krail: 1, shuttle: 1 };
+  function alertPoints(di) {
+    var list = DAYS[di].list, pts = [];
+    list.forEach(function (e, i) {
+      var nx = list[i + 1];
+      if (e.type === 'place' && nx && e.end - e.start >= 15) {
+        var body = e.step.name + ' → 다음: ' + entryTitle(nx, true) + ' (' + fmtTime(nx.start) + ')';
+        pts.push({ id: e.key + '|-10', at: e.end - 10, title: '10분 뒤 출발', body: body });
+        pts.push({ id: e.key + '|0', at: e.end, title: '지금 출발할 시간', body: body });
+      }
+      if (e.type === 'move' && TRANSIT[e.step.mode]) pts.push({ id: e.key + '|dep', at: e.start - 5, title: '5분 뒤 ' + MODE[e.step.mode].label + ' 출발', body: fmtTime(e.start) + ' ' + e.step.from + ' → ' + e.step.to + (e.step.line ? ' · ' + e.step.line : '') });
+      if (e.type === 'task' && e.end - e.start >= 5) pts.push({ id: e.key + '|task', at: e.start, title: '지금 할 일', body: e.text });
+    });
+    return pts.filter(function (a) { return a.at >= 0; });
+  }
+  var fired = {};
+  try { fired = JSON.parse(localStorage.getItem('fk-alert') || '{}'); } catch (e) {}
+  function checkAlerts(st) {
+    if (st.di < 0) return;
+    alertPoints(st.di).forEach(function (a) {
+      if (fired[a.id] || st.now.min < a.at || st.now.min > a.at + 3) return; // 늦게 열었으면 지난 알림은 안 울림
+      fired[a.id] = 1;
+      try { localStorage.setItem('fk-alert', JSON.stringify(fired)); } catch (e) {}
+      notify(a.title, a.body);
+    });
+  }
+  function notify(title, body) {
+    toast(title + ' · ' + body, 9000); banner(title);
+    if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
+    if (window.Notification && Notification.permission === 'granted' && navigator.serviceWorker)
+      navigator.serviceWorker.ready.then(function (r) { r.showNotification(title, { body: body, icon: 'icon-192.png', tag: 'fk-alert', renotify: true, vibrate: [250, 120, 250] }); }).catch(function () {});
+  }
+  function icsUtc(date, min) { return new Date(new Date(date + 'T00:00:00+09:00').getTime() + min * 60000).toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z'; }
+  function icsEsc(s) { return String(s).replace(/[\\;,]/g, function (c) { return '\\' + c; }).replace(/\n/g, '\\n'); }
+  function icsFold(line) { // 75바이트마다 접기 (한글은 3바이트)
+    var out = '', n = 0, enc = new TextEncoder();
+    for (var ch of line) { var b = enc.encode(ch).length; if (n + b > 73) { out += '\r\n '; n = 1; } out += ch; n += b; }
+    return out;
+  }
+  function icsFile() {
+    var now = tokyoNow(), stamp = icsUtc(now.date, Math.floor(now.min)), L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//fukuoka2026//KO', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+    DAYS.forEach(function (D, di) {
+      alertPoints(di).forEach(function (a) {
+        if (D.d.date < now.date || (D.d.date === now.date && a.at <= now.min)) return; // 이미 지난 건 빼기
+        L.push('BEGIN:VEVENT', 'UID:' + a.id.replace(/[^\w-]/g, '_') + '@fukuoka2026', 'DTSTAMP:' + stamp, 'DTSTART:' + icsUtc(D.d.date, a.at), 'DTEND:' + icsUtc(D.d.date, a.at + 5),
+          'SUMMARY:' + icsEsc(a.title + ' · ' + a.body), 'DESCRIPTION:' + icsEsc(a.body),
+          'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(a.title), 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT');
+      });
+    });
+    L.push('END:VCALENDAR');
+    return L.map(icsFold).join('\r\n') + '\r\n';
+  }
+  function downloadIcs() {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([icsFile()], { type: 'text/calendar;charset=utf-8' }));
+    a.download = 'fukuoka-alerts.ics'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+    toast('파일을 열어서 캘린더에 저장하세요', 5000);
+  }
+  function askNotify() {
+    if (!window.Notification) { toast('이 브라우저는 알림을 지원하지 않아요 — 캘린더에 넣기를 쓰세요'); return; }
+    Notification.requestPermission().then(function (p) { toast(p === 'granted' ? '폰 알림 켜졌어요' : '알림이 막혀 있어요 — 브라우저 설정에서 허용'); renderMenu(); });
+  }
+
   // ------------------------------------------------------------ 지출 기록: 금액·현금/카드·분류·메모·영수증 사진 — 전부 이 폰에만 (목록 localStorage, 사진 IndexedDB)
   var CAT_OF = { shrine: '입장·새전', temple: '입장·새전', food: '식비', bar: '식비', bath: '목욕탕', shop: '쇼핑·선물', pharmacy: '쇼핑·선물' };
   function expLoad() { try { return JSON.parse(localStorage.getItem('fk-exp') || '[]'); } catch (e) { return []; } }
@@ -1081,5 +1153,5 @@
   setInterval(function () { update(false); if (document.visibilityState === 'visible') refreshWx(); }, 30000);
   refreshWx(); drawRainFor();
 
-  window.__app = { state: function () { return lastState && { di: lastState.di, idx: lastState.e && lastState.e.idx, title: lastState.e && entryTitle(lastState.e), waiting: lastState.waiting }; }, selDay: function () { return selDay; } };
+  window.__app = { ics: function () { return icsFile(); }, state: function () { return lastState && { di: lastState.di, idx: lastState.e && lastState.e.idx, title: lastState.e && entryTitle(lastState.e), waiting: lastState.waiting }; }, selDay: function () { return selDay; } };
 })();
