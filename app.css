@@ -285,6 +285,44 @@ button:focus-visible, a:focus-visible, label:focus-within { outline: 3px solid v
 .me.has-heading .cone { display: block; }
 .leaflet-tooltip.lbl { font-size: 12px; font-weight: 700; padding: 3px 8px; background: var(--glass-strong); color: var(--ink); border: 1px solid var(--edge); border-radius: 9px; box-shadow: var(--shadow); }
 
+/* ---------- 지출 기록 ---------- */
+#exp { position: absolute; left: 0; right: 0; bottom: 0; z-index: 960; max-height: 92vh; overflow-y: auto; padding: 0 18px calc(var(--safe-b) + 14px);
+  background: var(--glass-strong); border: 1px solid var(--edge); border-bottom: 0; border-radius: 28px 28px 0 0; box-shadow: 0 -10px 40px rgba(0, 0, 0, .18), inset 0 1px 0 var(--hi);
+  -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%); transform: translateY(105%); transition: transform .34s cubic-bezier(.9,0,.1,1); }
+#exp.show { transform: none; }
+.exp-top { display: flex; align-items: center; justify-content: space-between; font-size: 19px; font-weight: 800; letter-spacing: -.02em; margin: 2px 0 12px; }
+#exp .qr-x { background: var(--paper2); border-color: var(--line); color: var(--ink); }
+.exp-amt { display: flex; gap: 10px; align-items: stretch; }
+#expAmt { flex: 1 1 auto; min-width: 0; height: 62px; font: inherit; font-size: 32px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+  border-radius: 18px; border: 1px solid var(--line); background: var(--paper2); color: var(--ink); padding: 0 16px; }
+.exp-won { min-height: 18px; margin: 4px 4px 0; }
+.seg { display: flex; gap: 4px; padding: 4px; border-radius: 16px; background: var(--paper2); margin: 10px 0; }
+.exp-amt .seg { margin: 0; flex: 0 0 auto; }
+.seg button { flex: 1 1 0; min-width: 52px; height: 44px; border: 0; border-radius: 12px; background: none; font-size: 15px; font-weight: 800; color: var(--mute); }
+.seg button[aria-pressed="true"] { background: var(--paper); color: var(--ink); box-shadow: 0 2px 8px rgba(0, 0, 0, .12); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+.chips button { height: 40px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--paper2); font-size: 14px; font-weight: 700; color: var(--ink2); }
+.chips button[aria-pressed="true"] { background: color-mix(in srgb, var(--blue) 14%, transparent); border-color: color-mix(in srgb, var(--blue) 45%, transparent); color: var(--blue); }
+#expMemo { width: 100%; height: 50px; font: inherit; font-size: 15px; border-radius: 16px; border: 1px solid var(--line); background: var(--paper2); color: var(--ink); padding: 0 14px; }
+.exp-photo { display: flex; gap: 10px; align-items: center; margin: 10px 0; }
+.exp-photo label { display: flex; align-items: center; justify-content: center; flex: 1 1 auto; cursor: pointer; }
+.exp-photo img { width: 64px; height: 64px; object-fit: cover; border-radius: 14px; border: 1px solid var(--line); }
+.exp-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; margin-top: 6px; }
+#expDel[hidden] + #expSave { grid-column: 1 / -1; }
+#rcpt { position: absolute; inset: 0; z-index: 995; background: rgba(0, 0, 0, .88); display: none; align-items: center; justify-content: center; padding: 16px; }
+#rcpt.show { display: flex; }
+#rcpt img { max-width: 100%; max-height: 100%; border-radius: 10px; }
+.wallet { border-radius: 20px; background: var(--paper2); padding: 4px 14px; }
+.w-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+.w-row:last-child { border-bottom: 0; }
+.w-row b { font-variant-numeric: tabular-nums; }
+.w-row.big b { font-size: 22px; letter-spacing: -.02em; }
+.w-row.big b.neg { color: var(--red); }
+.w-row input { width: 110px; height: 40px; font: inherit; font-size: 17px; font-weight: 800; text-align: right; border-radius: 12px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); padding: 0 10px; }
+.log-row.exp .amt { flex: 0 0 auto; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+.log-row.exp .amt small { display: block; font-weight: 600; color: var(--mute); font-size: 11.5px; }
+.sh-actions button.primary { background: var(--blue); border-color: var(--blue); color: var(--onblue); }
+
 /* ---------- 입국 QR (스캔되게 흰 바탕) ---------- */
 #qr { position: absolute; inset: 0; z-index: 985; background: #fff; color: #1c2541; display: flex; flex-direction: column;
   padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px calc(var(--safe-b) + 14px); transform: translateY(100%); transition: transform .3s cubic-bezier(.9,0,.1,1); }

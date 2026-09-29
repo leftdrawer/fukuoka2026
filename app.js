@@ -630,7 +630,7 @@
       h += '</dl>';
       if (s.notes.length) h += '<ul class="sh-notes">' + s.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
       h += '<div class="sh-actions"><button data-done="1">' + (done ? '완료 취소' : qt === 'main' ? '참배 완료' : '완료') + '</button>' + (kr ? '' : '<button data-copy="' + esc(s.name_ja) + '">일본어 이름 복사</button>') +
-        (s.address ? '<button data-copy="' + esc(s.address) + '">주소 복사</button>' : '') + '<button data-fly="1">지도에서 보기</button>' +
+        (s.address ? '<button data-copy="' + esc(s.address) + '">주소 복사</button>' : '') + '<button data-fly="1">지도에서 보기</button><button data-exp="1">지출 기록</button>' +
         '<a class="primary wide" href="' + gmapsUrl(e) + '" target="_blank" rel="noopener">구글 지도 길찾기</a></div>';
       h += '<div class="sh-src">위치: ' + esc(s.coord_src) + '</div>';
     } else {
@@ -647,7 +647,7 @@
       if (s.note) h += '<dt>메모</dt><dd>' + esc(s.note) + '</dd>';
       h += '</dl>';
       h += '<div class="sh-actions">' + (s.mode !== 'flight' ? '<button data-run="1">경로 미리보기</button>' : '') + (s.to_ja ? '<button data-copy="' + esc(s.to_ja) + '">' + esc(s.to_ja) + ' 복사</button>' : '') +
-        '<button data-done="1">' + (done ? '도착 취소' : '도착') + '</button>' +
+        '<button data-done="1">' + (done ? '도착 취소' : '도착') + '</button>' + (s.mode !== 'flight' ? '<button data-exp="1">운임 기록</button>' : '') +
         (m.gm ? '<a class="primary wide" href="' + gmapsUrl(e) + '" target="_blank" rel="noopener">구글 지도 길찾기 (' + (m.gm === 'walking' ? '도보' : '대중교통') + ')</a>' : '') + '</div>';
       h += '<div class="sh-src">출처: ' + esc(s.source || (s.est || s.est_time ? '추정 (엑셀 파란 글씨)' : '엑셀 일정')) + '</div>';
     }
@@ -664,7 +664,7 @@
     if (e.type === 'place') whipTo([e.step.lat, e.step.lon], 17);
     else if (e.type === 'move') map.flyToBounds(L.latLngBounds([].concat.apply([], e.step.geom)), { paddingTopLeft: [30, 100], paddingBottomRight: [30, dockH() + 30], maxZoom: 17 });
   }
-  $('scrim').addEventListener('click', function () { closeSheet(); closeMenu(); });
+  $('scrim').addEventListener('click', function () { closeSheet(); closeMenu(); closeExp(); });
   $('sClose').addEventListener('click', closeSheet);
   function stepSheet(dir) {
     if (!sheetEntry) return;
@@ -678,6 +678,7 @@
     if (li) { toggleObj(li.dataset.kind, li.dataset.id); openSheet(sheetEntry); update(false); return; }
     var b = ev.target.closest('button'); if (!b) return;
     if (b.dataset.qr) { closeSheet(); return openQR(); }
+    if (b.dataset.exp) return openExp(expPrefill(sheetEntry, true));
     if (b.dataset.fly) return flyTo(sheetEntry);
     if (b.dataset.run) { closeSheet(); return runRoute(sheetEntry); }
     if (b.dataset.done) { toggleDone(sheetEntry); return openSheet(sheetEntry); }
@@ -759,7 +760,8 @@
       rows += '<tr><td>식비·새전·입장료 (엑셀 추정)</td><td>' + yen(costs) + ' ≈ ' + won(costs) + '</td></tr>';
       var total = fixed + (fares + costs) * RATE;
       rows += '<tr class="total"><td>합계</td><td>' + krw(total) + '</td></tr>';
-      h += '<div class="m-h">예산</div><table class="money">' + rows + '</table><p class="small">1엔 = ' + RATE + '원 (' + esc(T.rate_note) + ') · 기념품·간식 제외</p>';
+      h += walletHtml(total);
+      h += '<div class="m-h">예산 (계획)</div><table class="money">' + rows + '</table><p class="small">1엔 = ' + RATE + '원 (' + esc(T.rate_note) + ') · 기념품·간식 제외</p>';
       // 현지에서 카드로 낼 돈 / 현금으로 낼 돈
       var cardAll = 0, cashAll = 0, prow = '';
       DAYS.forEach(function (D, di) {
@@ -787,6 +789,15 @@
     var r = ev.target.closest('.log-row[data-d]');
     if (r) { var e = DAYS[+r.dataset.d].list[+r.dataset.i]; closeMenu(true); openSheet(e); var p = entryPoint(e, 'start'); if (p) whipTo(p); return; }
     if (ev.target.closest('[data-qr]')) { closeMenu(); return openQR(); }
+    var x = ev.target.closest('[data-exp]');
+    if (x) { var it = expLoad().find(function (y) { return y.id === x.dataset.exp; }); if (it) openExp(it); return; }
+    if (ev.target.closest('[data-exp-new]')) return openExp(expPrefill(lastState && lastState.e, false));
+    if (ev.target.closest('[data-exp-share]')) {
+      var txt = expText() || '기록 없음';
+      if (navigator.share) navigator.share({ title: '후쿠오카 여행 지출', text: txt }).catch(function () {});
+      else copy(txt, ev.target.closest('button'));
+      return;
+    }
     var c = ev.target.closest('.chk'); if (c) { toggleObj('pack', c.dataset.pack); renderMenu(); if (lastState) renderQuest(lastState); }
   });
 
@@ -904,7 +915,7 @@
   function qrNeeded(now) { return !!QR_TASK && (now.date < QR_TASK.date || (now.date === QR_TASK.date && now.min < QR_TASK.end + 90)); }
   function openQR() { qrRender(); $('qr').classList.add('show'); $('qr').setAttribute('aria-hidden', 'false'); }
   function closeQR() { $('qr').classList.remove('show'); $('qr').setAttribute('aria-hidden', 'true'); }
-  function shrink(file) { // 큰 스크린샷은 1200px로 줄여서 저장 (QR 인식에 충분)
+  function shrink(file, max, type, q) { // 큰 사진은 줄여서 저장 (QR: 1200px PNG, 영수증: JPEG)
     return new Promise(function (res, rej) {
       var fr = new FileReader();
       fr.onerror = rej;
@@ -912,10 +923,10 @@
         var im = new Image();
         im.onerror = rej;
         im.onload = function () {
-          var k = Math.min(1, 1200 / Math.max(im.width, im.height)), cv = document.createElement('canvas');
+          var k = Math.min(1, (max || 1200) / Math.max(im.width, im.height)), cv = document.createElement('canvas');
           cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
           cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
-          res(cv.toDataURL('image/png'));
+          res(cv.toDataURL(type || 'image/png', q));
         };
         im.src = fr.result;
       };
@@ -927,13 +938,131 @@
   $('qrDel').addEventListener('click', function () { if (confirm('저장한 QR 캡처를 지울까요?')) { try { localStorage.removeItem('fk-qr'); } catch (e) {} qrRender(); } });
   $('qrFile').addEventListener('change', function (ev) {
     var files = [].slice.call(ev.target.files || []);
-    Promise.all(files.map(shrink)).then(function (urls) {
+    Promise.all(files.map(function (f) { return shrink(f); })).then(function (urls) {
       var all = qrLoad().concat(urls).slice(-3);
       try { localStorage.setItem('fk-qr', JSON.stringify(all)); toast('QR 캡처 저장했어요'); } catch (e) { toast('저장 공간이 부족해요 — 캡처를 줄여서 다시 해 주세요'); }
       qrRender(); ev.target.value = '';
     }, function () { toast('이미지를 읽지 못했어요'); });
   });
   window.__openQR = openQR;
+
+  // ------------------------------------------------------------ 지출 기록: 금액·현금/카드·분류·메모·영수증 사진 — 전부 이 폰에만 (목록 localStorage, 사진 IndexedDB)
+  var CAT_OF = { shrine: '입장·새전', temple: '입장·새전', food: '식비', bar: '식비', bath: '목욕탕', shop: '쇼핑·선물', pharmacy: '쇼핑·선물' };
+  function expLoad() { try { return JSON.parse(localStorage.getItem('fk-exp') || '[]'); } catch (e) { return []; } }
+  function expStore(list) { try { localStorage.setItem('fk-exp', JSON.stringify(list)); return true; } catch (e) { toast('저장 공간이 부족해요'); return false; } }
+  function walletLoad() { try { var v = localStorage.getItem('fk-wallet'); return v == null ? null : +v; } catch (e) { return null; } }
+  var rdb = null;
+  function rstore(mode) {
+    return new Promise(function (res, rej) {
+      function go(db) { res(db.transaction('r', mode).objectStore('r')); }
+      if (rdb) return go(rdb);
+      var q = indexedDB.open('fk-receipts', 1);
+      q.onupgradeneeded = function () { q.result.createObjectStore('r'); };
+      q.onsuccess = function () { rdb = q.result; go(rdb); };
+      q.onerror = function () { rej(q.error); };
+    });
+  }
+  function rreq(mode, fn) { return rstore(mode).then(function (s) { return new Promise(function (res, rej) { var r = fn(s); r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; }); }); }
+  function rput(id, url) { return rreq('readwrite', function (s) { return s.put(url, id); }); }
+  function rget(id) { return rreq('readonly', function (s) { return s.get(id); }); }
+  function rdel(id) { return rreq('readwrite', function (s) { return s.delete(id); }).catch(function () {}); }
+  function segSet(id, v) { $(id).querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === v ? 'true' : 'false'); }); }
+  function segGet(id) { var b = $(id).querySelector('[aria-pressed="true"]'); return b && b.dataset.v; }
+  function expWon() { var a = +$('expAmt').value || 0; $('expWon').textContent = a && segGet('expCur') === 'jpy' ? '≈ ' + won(a) : ''; }
+  ['expCur', 'expPay', 'expCat'].forEach(function (id) {
+    $(id).addEventListener('click', function (ev) { var b = ev.target.closest('button'); if (b) { segSet(id, b.dataset.v); expWon(); } });
+  });
+  $('expAmt').addEventListener('input', expWon);
+  // 퀘스트에서 미리 채우기: 장소는 입장료·분류, 이동은 운임·교통. 한국에선 원·카드
+  function expPrefill(e, withAmt) {
+    if (!e || e.type === 'task') return {};
+    var s = e.step, place = e.type === 'place', p = entryPoint(e, 'start'), kr = p && isKorea(p);
+    return { amt: withAmt ? (place ? s.cost_jpy : s.fare_jpy) || '' : '', cur: kr ? 'krw' : 'jpy', pay: kr || s.pay === 'card' ? 'card' : 'cash',
+      cat: place ? (CAT_OF[s.category] || '기타') : '교통', memo: place ? s.name : s.from + ' → ' + s.to, key: e.key };
+  }
+  var expEdit = null, expPhoto = null, expKey = null, expBack = false;
+  function openExp(pre) {
+    pre = pre || {};
+    expEdit = pre.id ? pre : null; expPhoto = null; expKey = pre.key || null;
+    $('expTitle').textContent = expEdit ? '지출 고치기' : '지출 기록';
+    $('expAmt').value = pre.amt || '';
+    segSet('expCur', pre.cur || 'jpy'); segSet('expPay', pre.pay || 'cash'); segSet('expCat', pre.cat || '기타');
+    $('expMemo').value = pre.memo || '';
+    $('expDel').hidden = !expEdit;
+    var img = $('expImg'); img.hidden = true; img.removeAttribute('src');
+    if (expEdit && expEdit.rid) rget(expEdit.id).then(function (u) { if (u) { img.src = u; img.hidden = false; } }, function () {});
+    expWon();
+    expBack = $('menu').classList.contains('show') && menuTab === 'money';
+    closeSheet(); closeMenu(true);
+    $('exp').classList.add('show'); $('exp').setAttribute('aria-hidden', 'false'); $('scrim').classList.add('show');
+    if (!pre.amt) setTimeout(function () { $('expAmt').focus(); }, 380);
+  }
+  function closeExp(back) {
+    $('exp').classList.remove('show'); $('exp').setAttribute('aria-hidden', 'true');
+    if (back) openMenu('money'); else $('scrim').classList.remove('show');
+  }
+  $('expClose').addEventListener('click', function () { closeExp(); });
+  $('bExp').addEventListener('click', function () { openExp(expPrefill(lastState && lastState.e, false)); });
+  $('expFile').addEventListener('change', function (ev) {
+    var f = ev.target.files && ev.target.files[0]; if (!f) return;
+    shrink(f, 1400, 'image/jpeg', 0.72).then(function (u) { expPhoto = u; $('expImg').src = u; $('expImg').hidden = false; }, function () { toast('사진을 읽지 못했어요'); });
+    ev.target.value = '';
+  });
+  $('expImg').addEventListener('click', function () { $('rcptImg').src = $('expImg').src; $('rcpt').classList.add('show'); });
+  $('rcpt').addEventListener('click', function () { $('rcpt').classList.remove('show'); });
+  $('expSave').addEventListener('click', function () {
+    var amt = Math.round(+$('expAmt').value || 0);
+    if (amt <= 0) { toast('금액을 넣어 주세요'); return; }
+    var now = tokyoNow(), list = expLoad(), wasEdit = !!expEdit;
+    var e = expEdit || { id: 'x' + Date.now().toString(36), t: now.date + ' ' + fmtTime(Math.floor(now.min)), key: expKey };
+    e.amt = amt; e.cur = segGet('expCur'); e.pay = segGet('expPay'); e.cat = segGet('expCat'); e.memo = $('expMemo').value.trim();
+    var photo = expPhoto ? rput(e.id, expPhoto).then(function () { e.rid = true; }, function () { toast('영수증 사진은 저장 못 했어요'); }) : Promise.resolve();
+    photo.then(function () {
+      list = wasEdit ? list.map(function (x) { return x.id === e.id ? e : x; }) : list.concat([e]);
+      if (!expStore(list)) return;
+      toast((wasEdit ? '고쳤어요 · ' : '기록했어요 · ') + (e.cur === 'jpy' ? yen(amt) : krw(amt)));
+      closeExp(expBack);
+    });
+  });
+  $('expDel').addEventListener('click', function () {
+    if (!expEdit || !confirm('이 지출 기록을 지울까요?')) return;
+    var id = expEdit.id;
+    expStore(expLoad().filter(function (x) { return x.id !== id; })); rdel(id);
+    closeExp(expBack);
+  });
+  function expText() { // 공유·백업용 텍스트
+    return expLoad().map(function (x) { return [x.t, x.cat, x.memo, (x.cur === 'jpy' ? x.amt + '엔' : x.amt + '원'), x.pay === 'cash' ? '현금' : '카드'].join(' | '); }).join('\n');
+  }
+  function walletHtml(total) {
+    var ex = expLoad(), cashJ = 0, cardJ = 0, cashK = 0, cardK = 0, prepaid = 0, have = walletLoad();
+    ex.forEach(function (x) { if (x.cur === 'jpy') { if (x.pay === 'cash') cashJ += x.amt; else cardJ += x.amt; } else { if (x.pay === 'cash') cashK += x.amt; else cardK += x.amt; } });
+    G.budget.forEach(function (b) { if (!b.est) prepaid += b.krw; });
+    var spent = (cashJ + cardJ) * RATE + cashK + cardK, left = have == null ? null : have - cashJ;
+    var h = '<div class="m-h">지갑</div><div class="wallet">' +
+      '<label class="w-row"><span>가진 현금 (환전한 엔 전부)</span><span><input id="walletJpy" type="number" inputmode="numeric" min="0" value="' + (have == null ? '' : have) + '" placeholder="30000"> 엔</span></label>' +
+      '<div class="w-row"><span>현금으로 쓴 돈</span><b>' + yen(cashJ) + (cashK ? ' + ' + krw(cashK) : '') + '</b></div>' +
+      '<div class="w-row big"><span>남은 현금</span><b class="' + (left != null && left < 0 ? 'neg' : '') + '">' + (left == null ? '위에 가진 현금 입력' : yen(left) + ' <span class="small">≈ ' + won(left) + '</span>') + '</b></div>' +
+      '<div class="w-row"><span>카드로 쓴 돈</span><b>' + yen(cardJ) + (cardK ? ' + ' + krw(cardK) : '') + '</b></div></div>';
+    h += '<div class="m-h">계획 vs 실제</div><table class="money">' +
+      '<tr><td>미리 낸 돈 (항공·숙소·eSIM·보험·한국 교통)</td><td>' + krw(prepaid) + '</td></tr>' +
+      '<tr><td>여행 중 기록한 지출 (' + ex.length + '건)</td><td>≈ ' + krw(spent) + '</td></tr>' +
+      '<tr class="total"><td>지금까지 쓴 돈</td><td>' + krw(prepaid + spent) + '</td></tr>' +
+      '<tr><td>계획 합계 (아래 예산)</td><td>' + krw(total) + '</td></tr>' +
+      '<tr><td>남은 예산</td><td>' + krw(total - prepaid - spent) + '</td></tr></table>' +
+      '<div class="sh-actions"><button data-exp-new="1" class="primary">+ 지출 기록</button><button data-exp-share="1">기록 내보내기</button></div>';
+    h += '<div class="m-h">지출 기록</div>';
+    if (!ex.length) h += '<p class="small">아직 기록이 없어요. 돈 낼 때마다 왼쪽 "지출" 버튼이나 장소 상세의 "지출 기록"으로 남기세요.</p>';
+    ex.slice().reverse().forEach(function (x) {
+      h += '<div class="log-row exp" data-exp="' + esc(x.id) + '"><span class="tx"><b>' + esc(x.memo || x.cat) + '</b><small>' + esc(x.t.slice(5)) + ' · ' + esc(x.cat) + (x.rid ? ' · 📷' : '') + '</small></span>' +
+        '<span class="amt">' + (x.cur === 'jpy' ? yen(x.amt) : krw(x.amt)) + '<small>' + (x.pay === 'cash' ? '현금' : '카드') + (x.cur === 'jpy' ? ' · ≈ ' + won(x.amt) : '') + '</small></span></div>';
+    });
+    return h;
+  }
+  $('menuBody').addEventListener('change', function (ev) {
+    if (ev.target.id !== 'walletJpy') return;
+    try { if (ev.target.value === '') localStorage.removeItem('fk-wallet'); else localStorage.setItem('fk-wallet', String(Math.max(0, Math.round(+ev.target.value)))); } catch (e) {}
+    renderMenu();
+  });
 
   // ------------------------------------------------------------ 시작
   function layout() { document.documentElement.style.setProperty('--dock', dockH() + 'px'); }
