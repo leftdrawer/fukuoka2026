@@ -131,7 +131,7 @@
   function modeChip(e) {
     if (e.type !== 'move') return '';
     var m = MODE[e.step.mode], col = m.c.indexOf('var(') === 0 ? '#6b7280' : m.c;
-    return '<span class="mode" style="background:' + col + '">' + m.label + '</span>';
+    return '<span class="mode" style="--mc:' + col + '">' + m.label + '</span>';
   }
   function entryTime(e) { return fmtTime(e.start) + (e.end > e.start ? '–' + fmtTime(e.end) : ''); }
   // 완료 판정: 장소는 직접 완료, 이동·할 일은 시간이 지나면 자동
@@ -876,7 +876,7 @@
     var d = isDark();
     $('themeIc').setAttribute('href', d ? '#i-sun' : '#i-moon');
     $('bTheme').querySelector('.t').textContent = d ? '낮 모드' : '밤 모드';
-    document.querySelector('meta[name=theme-color]').content = d ? '#121831' : '#eef0f4';
+    document.querySelector('meta[name=theme-color]').content = d ? '#07090f' : '#eef0f5';
   }
   $('bTheme').addEventListener('click', function () {
     var t = isDark() ? 'light' : 'dark'; document.documentElement.dataset.theme = t;
