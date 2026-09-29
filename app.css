@@ -3,8 +3,9 @@
 :root {
   --bg: #eef0f5; --paper: #ffffff; --paper2: rgba(15, 20, 40, .05); --ink: #0c1222; --ink2: #464e63; --mute: #8b92a5; --line: rgba(15, 20, 40, .08);
   --red: #e5484d; --blue: #3e63dd; --green: #2b9a66; --onblue: #ffffff;
-  --glass: rgba(255, 255, 255, .62); --glass-strong: rgba(250, 251, 254, .84); --edge: rgba(255, 255, 255, .75); --hi: rgba(255, 255, 255, .7);
-  --blur: blur(22px) saturate(180%);
+  --glass: rgba(255, 255, 255, .40); --glass-strong: rgba(250, 251, 254, .66); --edge: rgba(255, 255, 255, .8); --hi: rgba(255, 255, 255, .85);
+  --blur: blur(30px) saturate(200%);
+  --sheen: linear-gradient(180deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .08) 45%, rgba(255, 255, 255, .18));
   --shadow: 0 12px 32px rgba(15, 20, 40, .12), 0 2px 6px rgba(15, 20, 40, .06); --walk: #6b7280; --safe-b: env(safe-area-inset-bottom, 0px);
   --display: system-ui, "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
   --stamp: "Jua", system-ui, sans-serif;
@@ -13,7 +14,8 @@
 :root[data-theme="dark"] {
   --bg: #07090f; --paper: #161a26; --paper2: rgba(255, 255, 255, .07); --ink: #f2f4fa; --ink2: #b4bacb; --mute: #7c8396; --line: rgba(255, 255, 255, .08);
   --red: #ff6369; --blue: #8da4ff; --green: #3dd68c; --onblue: #0b1020;
-  --glass: rgba(20, 24, 36, .56); --glass-strong: rgba(16, 19, 29, .82); --edge: rgba(255, 255, 255, .10); --hi: rgba(255, 255, 255, .07);
+  --glass: rgba(20, 24, 36, .40); --glass-strong: rgba(16, 19, 29, .64); --edge: rgba(255, 255, 255, .16); --hi: rgba(255, 255, 255, .14);
+  --sheen: linear-gradient(180deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, .04));
   --shadow: 0 14px 36px rgba(0, 0, 0, .5); --walk: #c3cbe0; color-scheme: dark;
 }
 /* 지도는 채도를 빼서 경로 선만 또렷하게 */
@@ -22,7 +24,9 @@
 /* 유리 표면 공통 */
 #hud, .fab, .q-inner, #dock, #toast, #banner, .intro-card, .card, .leaflet-tooltip.lbl {
   -webkit-backdrop-filter: var(--blur, blur(22px) saturate(180%)); backdrop-filter: var(--blur, blur(22px) saturate(180%)); }
-#sheet, #menu { -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%); }
+#sheet, #menu { -webkit-backdrop-filter: blur(36px) saturate(200%); backdrop-filter: blur(36px) saturate(200%); }
+/* 윗면 빛 반사 (애플식 유리) */
+#hud, .fab, .q-inner, #dock, #sheet, #menu, #exp, .intro-card { background-image: var(--sheen); }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
