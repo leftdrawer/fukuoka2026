@@ -107,7 +107,6 @@
     if (s.mode === 'walk') return [s.to + '까지 걷기 (' + fmtDist(s.dist_m) + ')'];
     var o = [];
     if (s.pay === 'card') o.push(yen(s.fare_jpy) + ' · ' + G.payment.card + ' 개찰구에 터치');
-    else if (s.pay === 'free') o.push('무료');
     else if (s.fare_jpy) o.push(yen(s.fare_jpy) + ' · 현금' + (s.mode === 'bus' ? ' (탈 때 번호표, 내릴 때 요금함)' : '으로 표 사기'));
     o.push(s.from + '에서 ' + m.label + ' 탑승');
     o.push(s.to + '에서 내리기');
@@ -487,6 +486,8 @@
         if (s < bs) { bs = s; best = e; }
       });
       if (bs > 12) best = byTime;
+      // GPS로 앞으로 건너뛸 땐 그 사이 안 끝낸 할 일(입국심사·세관 등)부터 — 장소 없는 할 일은 GPS로 못 잡으니 건너뛰면 안 됨
+      if (best.idx > byTime.idx) for (var j = byTime.idx + 1; j < best.idx; j++) if (list[j].type === 'task' && !P.done[list[j].key]) { best = list[j]; break; }
       if (best.type === 'move' && best.step.mode !== 'flight' && list[best.idx + 1]) {
         var pr = project(p, best.step.geom);
         if (pr.d < 80 && pr.remain < 50) best = list[best.idx + 1];
