@@ -104,12 +104,14 @@
     if (e.type === 'task') return [e.text];
     var s = e.step, m = MODE[s.mode];
     if (s.mode === 'flight') return ['탑승 수속 · 여권 확인', s.to + ' 도착'];
-    if (s.mode === 'walk') return [s.to + '까지 걷기 (' + fmtDist(s.dist_m) + ')'];
+    if (s.mode === 'walk') return (s.board ? ['출발: ' + s.board] : []).concat(s.off ? ['도착: ' + s.off + ' (' + fmtDist(s.dist_m) + ')'] : [s.to + '까지 걷기 (' + fmtDist(s.dist_m) + ')']);
     var o = [];
+    if (s.board) o.push('타기: ' + s.board);
+    if (s.off) o.push('내리기: ' + s.off);
     if (s.pay === 'card') o.push(yen(s.fare_jpy) + ' · ' + G.payment.card + ' 개찰구에 터치');
     else if (s.fare_jpy) o.push(yen(s.fare_jpy) + ' · 현금' + (s.mode === 'bus' ? ' (탈 때 번호표, 내릴 때 요금함)' : '으로 표 사기'));
-    o.push(s.from + '에서 ' + m.label + ' 탑승');
-    o.push(s.to + '에서 내리기');
+    if (!s.board) o.push(s.from + '에서 ' + m.label + ' 탑승');
+    if (!s.off) o.push(s.to + '에서 내리기');
     return o;
   }
   // 지갑 한 줄: 이 퀘스트에 어떤 돈이 필요한지 (버스는 동전·천엔권, 새전은 5엔 등)
