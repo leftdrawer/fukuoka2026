@@ -879,7 +879,7 @@
   }
   function onPos(p) {
     var c = p.coords, gh = (c.heading != null && !isNaN(c.heading) && (c.speed || 0) > 0.7) ? c.heading : null;
-    gps = { lat: c.latitude, lon: c.longitude, acc: c.accuracy, gpsHeading: gh, heading: gh != null ? gh : lastCompass };
+    gps = { lat: c.latitude, lon: c.longitude, acc: c.accuracy, gpsHeading: gh, heading: gh != null ? gh : lastCompass, t: Date.now() };
     var ll = [gps.lat, gps.lon];
     seeking(false);
     if (!meMarker) {
@@ -1029,6 +1029,33 @@
       fired[a.id] = 1;
       try { localStorage.setItem('fk-alert', JSON.stringify(fired)); } catch (e) {}
       notify(a.title, a.body);
+    });
+    checkAlight(st);
+  }
+  // 내리기 2정거장 전 알림 (9/30 요청): GPS로 노선 위 남은 거리를 재고, 지하라 GPS가 끊기면 시간으로
+  function stopNames(s) { var m = (s.off || '').match(/\(([^()]*→[^()]*)\)|: ([^·]*→[^·]*)/); return m ? (m[1] || m[2]).split('→').map(function (x) { return x.trim(); }) : null; }
+  function pathLen(parts) { var t = 0; parts.forEach(function (pl) { for (var i = 0; i < pl.length - 1; i++) t += hav(pl[i], pl[i + 1]); }); return t; }
+  function checkAlight(st) {
+    var nowm = st.now.min, fresh = gps && gps.t && Date.now() - gps.t < 90000 && inArea([gps.lat, gps.lon]) ? [gps.lat, gps.lon] : null;
+    DAYS[st.di].list.forEach(function (e) {
+      if (e.type !== 'move' || !TRANSIT[e.step.mode] || e.step.mode === 'shuttle' || !e.step.geom) return;
+      if (nowm < e.start - 15 || nowm > e.end + 60) return;
+      var id = e.key + '|off2'; if (fired[id]) return;
+      var s = e.step, names = stopNames(s), n = names ? names.length - 1 : 0, total = pathLen(s.geom), th;
+      if (n >= 3) th = total * 2 / n + 150;           // 역 간격을 고르게 봤을 때 2정거장 남은 거리 (+조금 일찍)
+      else if (s.mode === 'bus') th = 700;             // 버스는 정류장 목록이 없어 700m 전에 "하차 벨"
+      else if (!names) th = Math.min(2500, total * 0.3);
+      else return;                                     // 1~2정거장짜리는 탈 때 이미 2정거장 전
+      var hit = false;
+      if (fresh) { var r = project(fresh, s.geom); hit = r.d < 500 && r.remain <= th && r.remain > 60; }
+      else if (n >= 3 && (watchId == null || gps)) hit = nowm >= e.end - (e.end - e.start) * 2 / n && nowm <= e.end; // GPS를 껐거나, 잡혔다가 끊겼을 때만 (처음 잡는 중엔 기다림)
+      if (!hit) return;
+      fired[id] = 1;
+      try { localStorage.setItem('fk-alert', JSON.stringify(fired)); } catch (x) {}
+      var off = (s.off || '').split(' · ').slice(1).join(' · ');
+      if (n >= 3) notify('2정거장 뒤 내려요', names[n - 1] + ' 다음 ' + names[n] + '에서 내리기' + (off ? ' · ' + off : ''));
+      else if (s.mode === 'bus') notify('곧 내려요 — 하차 벨 누르기', s.to + (off ? ' · ' + off : ''));
+      else notify('곧 내려요', s.to + '에서 내리기' + (off ? ' · ' + off : ''));
     });
   }
   function notify(title, body) {
