@@ -106,6 +106,13 @@ button:focus-visible, a:focus-visible, label:focus-within { outline: 3px solid v
 .q-inner { position: relative; background: var(--glass-strong); border: 1px solid var(--edge); border-radius: 26px; padding: 15px 16px 12px; box-shadow: var(--shadow), inset 0 1px 0 var(--hi);
   transform: rotateX(var(--tx, 3deg)) rotateY(var(--ty, 0deg)); transform-origin: 50% 100%; transition: transform .25s ease-out; }
 #quest.whip-in .q-inner { animation: whipIn .42s cubic-bezier(.12,.9,.18,1) both; }
+/* 접기: 카드를 아래로 밀면 종류·시간·제목 한 줄만 남기고 지도를 비움, 위로 밀거나 톡 누르면 펼침 */
+#quest { touch-action: none; }
+.q-inner::before { content: ""; position: absolute; top: 6px; left: 50%; width: 38px; height: 4px; margin-left: -19px; border-radius: 2px; background: color-mix(in srgb, var(--ink) 20%, transparent); }
+#quest.min .q-objs, #quest.min .q-coin, #quest.min .q-reward, #quest.min .q-dist, #quest.min .q-next, #quest.min .q-actions, #quest.min .slot, #quest.min .orb { display: none; }
+#quest.min .q-inner { padding: 13px 16px 10px; cursor: pointer; }
+#quest.min .q-top { padding-right: 0; }
+#quest.min .q-title { font-size: 17px; margin: 2px 0 0; padding-right: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @keyframes whipIn { 0% { transform: translateX(115%) skewX(-10deg) rotateY(-25deg); filter: blur(8px); opacity: .4; }
   100% { transform: rotateX(var(--tx, 3deg)) rotateY(var(--ty, 0deg)); filter: none; opacity: 1; } }
 .slot { position: absolute; right: 14px; top: 14px; width: 62px; height: 62px; border-radius: 50%; border: 2px dashed color-mix(in srgb, var(--ink) 22%, transparent);

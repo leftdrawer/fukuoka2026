@@ -595,6 +595,23 @@
     function reset() { q.style.removeProperty('--tx'); q.style.removeProperty('--ty'); }
     q.addEventListener('touchend', reset); q.addEventListener('pointerleave', reset);
   })();
+  // 카드 접기 (9/30 요청): 아래로 밀면 제목 한 줄만 남기고 지도를 비움, 위로 밀거나 접힌 카드를 톡 누르면 다시 펼침
+  (function () {
+    var q = $('quest'), y0 = null, x0 = 0, moved = false;
+    function setMin(on) { q.classList.toggle('min', on); try { localStorage.setItem('fk-qmin', on ? '1' : ''); } catch (e) {} }
+    try { if (localStorage.getItem('fk-qmin')) q.classList.add('min'); } catch (e) {}
+    q.addEventListener('pointerdown', function (e) { y0 = e.clientY; x0 = e.clientX; moved = false; });
+    q.addEventListener('pointermove', function (e) { if (y0 != null && Math.abs(e.clientY - y0) > 10) moved = true; });
+    q.addEventListener('pointerup', function (e) {
+      if (y0 == null) return;
+      var dy = e.clientY - y0, dx = e.clientX - x0; y0 = null;
+      if (Math.abs(dy) >= 40 && Math.abs(dy) > Math.abs(dx)) setMin(dy > 0);
+    });
+    q.addEventListener('pointercancel', function () { y0 = null; });
+    q.addEventListener('click', function (e) { // 민 뒤의 클릭, 접힌 카드의 클릭은 안쪽 버튼·체크칸으로 안 보냄
+      if (moved || q.classList.contains('min')) { e.stopPropagation(); e.preventDefault(); if (!moved) setMin(false); moved = false; }
+    }, true);
+  })();
 
   // ------------------------------------------------------------ 갱신 루프
   var lastKey = null;
