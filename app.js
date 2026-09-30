@@ -348,6 +348,17 @@
         stopLayer.addLayer(m);
       });
     });
+    // 그날 들를 만한 가게 (일정 밖 — day.pois): 작은 핀 + 이름표, 누르면 영업시간·메모·구글 지도 길찾기
+    (T.days[selDay].pois || []).forEach(function (p) {
+      var c = CAT[p.category] || CAT.food;
+      var m = L.marker([p.lat, p.lon], { icon: L.divIcon({ className: 'poi', iconSize: [28, 28], iconAnchor: [14, 14],
+        html: '<div class="pb" style="background:' + c.c + '"><span>' + c.icon + '</span></div>' }), zIndexOffset: 400 })
+        .bindTooltip(esc(p.label || p.name), { permanent: true, className: 'lbl poi-lbl', direction: 'right', offset: [12, 0] })
+        .bindPopup('<div class="poi-pop"><b>' + esc(p.name) + '</b>' + (p.name_ja ? '<div class="ja">' + esc(p.name_ja) + '</div>' : '') +
+          (p.hours ? '<div>🕘 ' + esc(p.hours) + '</div>' : '') + (p.note ? '<div>' + esc(p.note) + '</div>' : '') +
+          '<a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + p.lat + ',' + p.lon + '&travelmode=walking">구글 지도 길찾기 ↗</a></div>', { maxWidth: 260 });
+      stopLayer.addLayer(m);
+    });
   }
   function regionOf(e) { // 장소 없는 할 일은 앞(없으면 뒤) 항목의 나라
     var list = DAYS[e.day].list, i, p;
