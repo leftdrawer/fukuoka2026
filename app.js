@@ -83,6 +83,13 @@
   var P = { done: {}, obj: {}, pack: {}, intro: {} };
   try { var saved = JSON.parse(localStorage.getItem('fk-progress-v1') || 'null'); if (saved) P = Object.assign(P, saved); } catch (e) {}
   function save() { try { localStorage.setItem('fk-progress-v1', JSON.stringify(P)); } catch (e) {} }
+  if (!P.objv2) { // 이동 할 일 순서를 [타기, 내리기, 표] → [표, 타기, 내리기]로 바꾼 뒤 이미 누른 체크를 옮김
+    T.days.forEach(function (d) { d.steps.forEach(function (s) {
+      var o = P.obj[s.key]; if (s.kind !== 'move' || !o || s.mode === 'walk' || s.mode === 'flight' || !s.board || !s.off || !(s.pay === 'card' || s.fare_jpy)) return;
+      P.obj[s.key] = [o[2], o[0], o[1]];
+    }); });
+    P.objv2 = 1; save();
+  }
 
   // ------------------------------------------------------------ 하루 타임라인 = 퀘스트 목록
   var DAYS = T.days.map(function (d, di) {
@@ -105,11 +112,11 @@
     var s = e.step, m = MODE[s.mode];
     if (s.mode === 'flight') return ['탑승 수속 · 여권 확인', s.to + ' 도착'];
     if (s.mode === 'walk') return (s.board ? ['출발: ' + s.board] : []).concat(s.off ? ['도착: ' + s.off + ' (' + fmtDist(s.dist_m) + ')'] : [s.to + '까지 걷기 (' + fmtDist(s.dist_m) + ')']);
-    var o = [];
+    var o = []; // 일어나는 순서대로: 표 사기·카드 터치 → 타기 → 내리기 (9/30 요청)
+    if (s.pay === 'card') o.push(yen(s.fare_jpy) + ' · 실물 카드를 개찰구에 터치');
+    else if (s.fare_jpy) o.push(yen(s.fare_jpy) + ' · 현금' + (s.mode === 'bus' ? ' (탈 때 번호표, 내릴 때 요금함)' : '으로 표 사기'));
     if (s.board) o.push('타기: ' + s.board);
     if (s.off) o.push('내리기: ' + s.off);
-    if (s.pay === 'card') o.push(yen(s.fare_jpy) + ' · ' + G.payment.card + ' 개찰구에 터치');
-    else if (s.fare_jpy) o.push(yen(s.fare_jpy) + ' · 현금' + (s.mode === 'bus' ? ' (탈 때 번호표, 내릴 때 요금함)' : '으로 표 사기'));
     if (!s.board) o.push(s.from + '에서 ' + m.label + ' 탑승');
     if (!s.off) o.push(s.to + '에서 내리기');
     return o;
