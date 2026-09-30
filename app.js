@@ -679,6 +679,9 @@
       h += '<div class="sh-time">' + entryTime(e) + '</div>';
       h += wxSec(e);
       if (q.reward && qt === 'main') h += '<div class="sh-h">기도 제목</div><div class="sh-pray">' + esc(q.reward) + '</div>';
+      if (isPrayer(e)) h += '<div class="sh-h">🎙 기도 녹음</div><div class="rec-box"><div id="recList" class="rec-list"><p class="rec-empty">불러오는 중…</p></div>' +
+        '<label class="rec-add">녹음 파일 올리기<input id="recFile" type="file" accept="audio/*,.m4a,.mp3,.wav,.aac,.amr,.3gp,.ogg" multiple hidden></label>' +
+        '<p class="rec-note">이 폰 안에만 저장돼요 (서버로 안 올라감). 옮기거나 보낼 땐 파일마다 "공유"</p></div>';
       h += sec('', '할 일', objs, true);
       if (coinTip(e)) h += sec('', '🪙 지갑', ['<li>' + esc(coinTip(e)) + '</li>']);
       h += sec('teacher', '진홍 선생님', (s.teacher || []).map(function (n) { return '<li>' + esc(n) + '</li>'; }));
@@ -712,6 +715,7 @@
       h += '<div class="sh-src">출처: ' + esc(s.source || (s.est || s.est_time ? '추정 (엑셀 파란 글씨)' : '엑셀 일정')) + '</div>';
     }
     $('sheetBody').innerHTML = h; $('sheetBody').scrollTop = 0;
+    if (e.type === 'place' && isPrayer(e)) recRender(e);
     var list = DAYS[e.day].list;
     $('sPos').textContent = (e.idx > 0 ? '‹ ' : '') + (e.idx + 1) + ' / ' + list.length + (e.idx < list.length - 1 ? ' ›' : '') + ' · 좌우로 밀어 이전·다음';
     closeMenu(true);
@@ -742,13 +746,26 @@
     if (b.dataset.run) { closeSheet(); return runRoute(sheetEntry); }
     if (b.dataset.done) { toggleDone(sheetEntry); return openSheet(sheetEntry); }
     if (b.dataset.copy != null) copy(b.dataset.copy, b);
+    if (b.dataset.recdel) { if (confirm('이 녹음 파일을 지울까요?')) adel(b.dataset.recdel).then(function () { recRender(sheetEntry); }); return; }
+    if (b.dataset.recshare) return recShare(b.dataset.recshare);
+  });
+  $('sheetBody').addEventListener('change', function (ev) {
+    if (ev.target.id !== 'recFile' || !sheetEntry) return;
+    var e = sheetEntry, files = [].slice.call(ev.target.files || []); ev.target.value = '';
+    if (!files.length) return;
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); // 폰이 저장 공간 정리할 때 지워지지 않게
+    Promise.all(files.map(function (f, i) {
+      var t = Date.now() + i;
+      return aput({ id: e.key + '|' + t, place: e.key, name: f.name, type: f.type || 'audio/mp4', size: f.size, t: t, blob: f });
+    })).then(function () { toast('녹음 ' + files.length + '개 저장했어요'); recRender(e); }, function () { toast('저장하지 못했어요 — 저장 공간을 확인해 주세요'); });
   });
   (function () { // 시트 아래로 끌어내리기
     [['sheet', 'sheetBody', closeSheet], ['menu', 'menuBody', function () { closeMenu(); }]].forEach(function (c) {
       var y0 = null, x0 = null, sy = null, sh = $(c[0]);
-      sh.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; sy = e.touches[0].clientY; y0 = $(c[1]).scrollTop <= 0 ? sy : null; }, { passive: true });
+      sh.addEventListener('touchstart', function (e) { if (e.target.closest && e.target.closest('audio, .rec-item')) { x0 = sy = y0 = null; return; } x0 = e.touches[0].clientX; sy = e.touches[0].clientY; y0 = $(c[1]).scrollTop <= 0 ? sy : null; }, { passive: true });
       sh.addEventListener('touchmove', function (e) { if (y0 != null) { var dy = e.touches[0].clientY - y0, dx = e.touches[0].clientX - x0; if (dy > 0 && dy > Math.abs(dx)) sh.style.transform = 'translateY(' + dy + 'px)'; } }, { passive: true });
       sh.addEventListener('touchend', function (e) {
+        if (x0 == null && y0 == null) return; // 재생 막대를 끈 경우
         var t = e.changedTouches[0], dx = x0 == null ? 0 : t.clientX - x0, dys = sy == null ? 0 : t.clientY - sy;
         sh.style.transform = '';
         if (c[0] === 'sheet' && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dys) * 1.5) { y0 = x0 = null; return stepSheet(dx < 0 ? 1 : -1); } // 왼쪽으로 밀면 다음, 오른쪽으로 밀면 이전
@@ -1138,6 +1155,48 @@
   function rput(id, url) { return rreq('readwrite', function (s) { return s.put(url, id); }); }
   function rget(id) { return rreq('readonly', function (s) { return s.get(id); }); }
   function rdel(id) { return rreq('readwrite', function (s) { return s.delete(id); }).catch(function () {}); }
+  // 기도 녹음 (9/30 요청): 기도터마다 녹음 파일을 폰 IndexedDB에 보관 — 받아쓰기·요약은 은호당님이 따로
+  function isPrayer(e) { var s = e && e.step; return !!(s && e.type === 'place' && ((s.quest && s.quest.type === 'main') || s.category === 'shrine' || s.category === 'temple')); }
+  var adb = null;
+  function astore(mode) {
+    return new Promise(function (res, rej) {
+      function go(db) { res(db.transaction('a', mode).objectStore('a')); }
+      if (adb) return go(adb);
+      var q = indexedDB.open('fk-audio', 1);
+      q.onupgradeneeded = function () { q.result.createObjectStore('a', { keyPath: 'id' }).createIndex('place', 'place'); };
+      q.onsuccess = function () { adb = q.result; go(adb); };
+      q.onerror = function () { rej(q.error); };
+    });
+  }
+  function areq(mode, fn) { return astore(mode).then(function (s) { return new Promise(function (res, rej) { var r = fn(s); r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; }); }); }
+  function aput(rec) { return areq('readwrite', function (s) { return s.put(rec); }); }
+  function adel(id) { return areq('readwrite', function (s) { return s.delete(id); }); }
+  function aget(id) { return areq('readonly', function (s) { return s.get(id); }); }
+  function alist(place) { return areq('readonly', function (s) { return s.index('place').getAll(place); }); }
+  var recUrls = [];
+  function recRender(e) {
+    var box = $('recList'); if (!box) return;
+    alist(e.key).then(function (list) {
+      if (!$('recList') || sheetEntry !== e) return;
+      recUrls.forEach(function (u) { URL.revokeObjectURL(u); }); recUrls = [];
+      list.sort(function (a, b) { return a.t - b.t; });
+      $('recList').innerHTML = list.length ? list.map(function (r) {
+        var u = URL.createObjectURL(r.blob); recUrls.push(u);
+        var d = new Date(r.t), when = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+        return '<div class="rec-item"><div class="rec-meta"><b>' + esc(r.name) + '</b><small>' + when + ' 올림 · ' + (r.size / 1048576).toFixed(1) + 'MB</small></div>' +
+          '<audio controls preload="metadata" src="' + u + '"></audio>' +
+          '<div class="rec-btns"><button data-recshare="' + esc(r.id) + '">공유</button><a href="' + u + '" download="' + esc(r.name) + '">내려받기</a><button data-recdel="' + esc(r.id) + '">지우기</button></div></div>';
+      }).join('') : '<p class="rec-empty">아직 없어요. 기도 뒤 녹음 앱에서 저장한 파일을 올려 주세요.</p>';
+    }, function () { if ($('recList')) $('recList').innerHTML = '<p class="rec-empty">이 브라우저에선 녹음을 저장할 수 없어요</p>'; });
+  }
+  function recShare(id) {
+    aget(id).then(function (r) {
+      if (!r) return;
+      var f = new File([r.blob], r.name, { type: r.type });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], title: r.name }).catch(function () {});
+      else toast('이 폰은 파일 공유가 안 돼요 — "내려받기"를 써 주세요');
+    });
+  }
   function segSet(id, v) { $(id).querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === v ? 'true' : 'false'); }); }
   function segGet(id) { var b = $(id).querySelector('[aria-pressed="true"]'); return b && b.dataset.v; }
   function expWon() { var a = +$('expAmt').value || 0; $('expWon').textContent = a && segGet('expCur') === 'jpy' ? '≈ ' + won(a) : ''; }
