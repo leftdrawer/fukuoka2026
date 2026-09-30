@@ -920,7 +920,18 @@
     if (follow) map.setView(ll, Math.max(map.getZoom(), 16), { animate: true });
     update(false);
   }
-  function onPosErr(err) { if (err.code === 1) { toast('위치 권한이 꺼져 있어요 — 브라우저 설정에서 허용해 주세요'); gpsStop(); } else toast('위치를 아직 못 잡았어요'); }
+  var gpsDenied = false, errToastAt = 0;
+  function onPosErr(err) {
+    if (err.code === 1) { gpsDenied = true; toast('위치 권한이 꺼져 있어요 — 브라우저 설정에서 허용해 주세요'); gpsStop(); return; }
+    if (Date.now() - errToastAt > 120000) { errToastAt = Date.now(); toast('위치를 아직 못 잡았어요 (지하·실내일 수 있어요)'); } // 잦은 알림 막기
+  }
+  // GPS 항상 켜기 (9/30 요청): 앱을 열 때·다시 볼 때 자동으로 켜고, 2분 넘게 위치가 안 오면 다시 잡기
+  function gpsKeep() {
+    if (gpsDenied || document.visibilityState !== 'visible') return;
+    if (watchId == null) return gpsStart();
+    if (gps && gps.t && Date.now() - gps.t > 120000) { navigator.geolocation.clearWatch(watchId); watchId = null; gpsStart(); }
+  }
+  setInterval(gpsKeep, 60000);
   function drawHeading() {
     if (!meMarker) return; var el = meMarker.getElement(); if (!el) return;
     var me = el.querySelector('.me'), cone = el.querySelector('.cone'), h = gps && gps.heading;
@@ -966,7 +977,7 @@
     if (!('wakeLock' in navigator)) { toast('이 브라우저는 화면 켜둠을 지원하지 않아요'); return; }
     wakeWanted = !wakeWanted; if (wakeWanted) wakeOn(); else { if (wakeLock) wakeLock.release(); setBtn('bWake', false); }
   });
-  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { if (wakeWanted && !wakeLock) wakeOn(); update(false); } });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { if (wakeWanted && !wakeLock) wakeOn(); gpsKeep(); update(false); } });
 
   // 테마
   function themeUI() {
@@ -1064,6 +1075,7 @@
   // 내리기 2정거장 전 알림 (9/30 요청): GPS로 노선 위 남은 거리를 재고, 지하라 GPS가 끊기면 시간으로
   function stopNames(s) { var m = (s.off || '').match(/\(([^()]*→[^()]*)\)|: ([^·]*→[^·]*)/); return m ? (m[1] || m[2]).split('→').map(function (x) { return x.trim(); }) : null; }
   function pathLen(parts) { var t = 0; parts.forEach(function (pl) { for (var i = 0; i < pl.length - 1; i++) t += hav(pl[i], pl[i + 1]); }); return t; }
+  var ALIGHT_VIB = [5000]; // 하차 알림: 5초 동안 끊김 없이 진동 (9/30 요청 · 세기는 웹에서 못 정함, 폰 설정의 진동 세기를 따름)
   function checkAlight(st) {
     var nowm = st.now.min, fresh = gps && gps.t && Date.now() - gps.t < 90000 && inArea([gps.lat, gps.lon]) ? [gps.lat, gps.lon] : null;
     DAYS[st.di].list.forEach(function (e) {
@@ -1082,16 +1094,17 @@
       fired[id] = 1;
       try { localStorage.setItem('fk-alert', JSON.stringify(fired)); } catch (x) {}
       var off = (s.off || '').split(' · ').slice(1).join(' · ');
-      if (n >= 3) notify('2정거장 뒤 내려요', names[n - 1] + ' 다음 ' + names[n] + '에서 내리기' + (off ? ' · ' + off : ''));
-      else if (s.mode === 'bus') notify('곧 내려요 — 하차 벨 누르기', s.to + (off ? ' · ' + off : ''));
-      else notify('곧 내려요', s.to + '에서 내리기' + (off ? ' · ' + off : ''));
+      if (n >= 3) notify('2정거장 뒤 내려요', names[n - 1] + ' 다음 ' + names[n] + '에서 내리기' + (off ? ' · ' + off : ''), ALIGHT_VIB);
+      else if (s.mode === 'bus') notify('곧 내려요 — 하차 벨 누르기', s.to + (off ? ' · ' + off : ''), ALIGHT_VIB);
+      else notify('곧 내려요', s.to + '에서 내리기' + (off ? ' · ' + off : ''), ALIGHT_VIB);
     });
   }
-  function notify(title, body) {
-    toast(title + ' · ' + body, 9000); banner(title);
-    if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
+  function notify(title, body, vib) {
+    var pat = vib || [250, 120, 250];
+    toast(title + ' · ' + body, vib ? 15000 : 9000); banner(title);
+    if (navigator.vibrate) navigator.vibrate(pat);
     if (window.Notification && Notification.permission === 'granted' && navigator.serviceWorker)
-      navigator.serviceWorker.ready.then(function (r) { r.showNotification(title, { body: body, icon: 'icon-192.png', tag: 'fk-alert', renotify: true, vibrate: [250, 120, 250] }); }).catch(function () {});
+      navigator.serviceWorker.ready.then(function (r) { r.showNotification(title, { body: body, icon: 'icon-192.png', tag: vib ? 'fk-alight' : 'fk-alert', renotify: true, requireInteraction: !!vib, vibrate: pat }); }).catch(function () {});
   }
   function icsUtc(date, min) { return new Date(new Date(date + 'T00:00:00+09:00').getTime() + min * 60000).toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z'; }
   function icsEsc(s) { return String(s).replace(/[\\;,]/g, function (c) { return '\\' + c; }).replace(/\n/g, '\\n'); }
@@ -1309,6 +1322,7 @@
   update(false);
   layout();
   fitDay(selDay);
+  gpsStart(); // 항상 켜진 채로 시작 (끄기 버튼으로 끄면 다음에 앱을 열 때 다시 켜짐)
   // 오늘 챕터 인트로는 하루 한 번
   var today = tokyoNow().date;
   if (st0.di >= 0 && !P.intro[today]) { P.intro[today] = 1; save(); showIntro(st0.di); }
