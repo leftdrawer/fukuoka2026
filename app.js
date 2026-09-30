@@ -1151,9 +1151,12 @@
     var seeded = {}; try { seeded = JSON.parse(localStorage.getItem('fk-exp-seed') || '{}'); } catch (e) {}
     var add = (G.seed_exp || []).filter(function (x) { return !seeded[x.id]; }), w = G.seed_wallet;
     if (w && !seeded[w.id]) { seeded[w.id] = 1; try { localStorage.setItem('fk-wallet', String(w.jpy)); localStorage.setItem('fk-exp-seed', JSON.stringify(seeded)); } catch (e) {} }
-    if (!add.length) return;
+    var del = (G.seed_del || []).filter(function (id) { return !seeded['del:' + id]; });
+    if (!add.length && !del.length) return;
     var list = expLoad();
-    add.forEach(function (x) { seeded[x.id] = 1; if (!list.some(function (y) { return y.id === x.id; })) list.push(Object.assign({}, x)); });
+    // 잘못 넣은 지출 지우기 (seed_del: 한 번만, 이미 폰에 들어간 것도 지움)
+    del.forEach(function (id) { seeded['del:' + id] = 1; list = list.filter(function (y) { return y.id !== id; }); });
+    add.forEach(function (x) { seeded[x.id] = 1; if (del.indexOf(x.id) < 0 && !list.some(function (y) { return y.id === x.id; })) list.push(Object.assign({}, x)); });
     list.sort(function (p, q) { return p.t < q.t ? -1 : p.t > q.t ? 1 : 0; });
     if (expStore(list)) try { localStorage.setItem('fk-exp-seed', JSON.stringify(seeded)); } catch (e) {}
   })();
