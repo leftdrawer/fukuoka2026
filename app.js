@@ -144,6 +144,7 @@
     var s = e.step;
     if (s.mode === 'subway' && s.pay === 'card') return '🎫 개찰구에서 실물 카드 터치 — 표 안 사도 됨 (나올 때도 같은 카드로 · 삼성페이는 9/30에 안 됨)';
     if (s.mode === 'bus') return '🎫 뒷문으로 타며 번호표 뽑기 → 내릴 때 앞문 요금함에 현금 ' + yen(s.fare_jpy || 0);
+    if (s.pay === 'cash' && /무인역/.test(s.board || '')) return '🎫 무인역: 매표기가 있으면 ' + yen(s.fare_jpy || 0) + ' 표, 없으면 그냥 타고 도착역 精算所(정산소)에서 현금';
     if (s.pay === 'cash' && (s.mode === 'jr' || s.mode === 'nishitetsu' || s.mode === 'subway')) return '🎫 매표기에서 ' + yen(s.fare_jpy || 0) + ' 표 사기 (현금) → 개찰구에 표 넣기';
     return '';
   }
