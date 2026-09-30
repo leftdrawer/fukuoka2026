@@ -125,6 +125,7 @@
   function coinTip(e) {
     if (!e || !e.step) return '';
     var s = e.step;
+    if (s.pay_how) return s.pay_how; // 결제마다 어떤 돈으로 낼지 (9/30 요청: 실제 지갑 기준 가이드)
     if (e.type === 'move') {
       if (s.mode === 'bus') return '버스: ' + yen(s.fare_jpy || 0) + ' 딱 맞게 — 동전·천엔권만 (1만엔·5천엔권은 교환기에서 안 바뀜)';
       if (s.pay === 'cash' && (s.mode === 'jr' || s.mode === 'nishitetsu' || s.mode === 'subway'))
