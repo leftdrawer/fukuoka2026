@@ -131,6 +131,7 @@ button:focus-visible, a:focus-visible, label:focus-within { outline: 3px solid v
 .q-timer.late { color: var(--red); }
 .q-title { font-family: var(--display); font-size: 23px; font-weight: 800; letter-spacing: -.025em; line-height: 1.22; margin: 4px 0 6px; padding-right: 76px; }
 .q-objs { list-style: none; margin: 4px 0; padding: 0; font-size: 14.5px; }
+#quest .q-objs { max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 .q-objs li.more { color: var(--mute); font-size: 12.5px; padding-left: 28px; }
 .q-objs li, .obj-list li { display: flex; gap: 9px; align-items: flex-start; padding: 3px 0; cursor: pointer; }
 .q-objs li .box, .obj-list li .box { flex: 0 0 19px; height: 19px; border: 2px solid color-mix(in srgb, var(--ink) 28%, transparent); border-radius: 6px; margin-top: 1px;

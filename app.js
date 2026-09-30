@@ -621,7 +621,12 @@
     var q = $('quest'), y0 = null, x0 = 0, moved = false;
     function setMin(on) { q.classList.toggle('min', on); try { localStorage.setItem('fk-qmin', on ? '1' : ''); } catch (e) {} }
     try { if (localStorage.getItem('fk-qmin')) q.classList.add('min'); } catch (e) {}
-    q.addEventListener('pointerdown', function (e) { y0 = e.clientY; x0 = e.clientX; moved = false; });
+    q.addEventListener('pointerdown', function (e) {
+      // 할 일 목록이 길어 안에서 스크롤할 수 있으면 거기서 민 건 접기로 보지 않음 (9/30 버그: 읽으려고 내리면 카드가 접힘)
+      var sc = e.target.closest && e.target.closest('.q-objs');
+      if (sc && sc.scrollHeight > sc.clientHeight + 2) { y0 = null; moved = false; return; }
+      y0 = e.clientY; x0 = e.clientX; moved = false;
+    });
     q.addEventListener('pointermove', function (e) { if (y0 != null && Math.abs(e.clientY - y0) > 10) moved = true; });
     q.addEventListener('pointerup', function (e) {
       if (y0 == null) return;
