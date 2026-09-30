@@ -231,6 +231,8 @@ button:focus-visible, a:focus-visible, label:focus-within { outline: 3px solid v
 
 /* ---------- 메뉴 ---------- */
 .m-tabs { display: flex; gap: 4px; padding: 6px 12px 2px; flex: 0 0 auto; overflow-x: auto; scrollbar-width: none; }
+#menu .m-tabs { margin-right: 52px; padding-right: 0; gap: 2px; }
+#menu .m-tabs button { padding: 0 6px; font-size: 14px; }
 .m-tabs button { flex: 1 0 auto; height: 40px; padding: 0 12px; border: 0; background: none; border-radius: 10px; font-size: 14.5px; font-weight: 700; color: var(--mute); }
 .m-tabs button[aria-selected="true"] { background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--blue); }
 .m-h { font-family: var(--display); font-size: 18px; font-weight: 800; letter-spacing: -.02em; margin: 18px 0 6px; }
