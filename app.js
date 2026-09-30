@@ -1077,6 +1077,9 @@
   // 내리기 2정거장 전 알림 (9/30 요청): GPS로 노선 위 남은 거리를 재고, 지하라 GPS가 끊기면 시간으로
   function stopNames(s) { var m = (s.off || '').match(/\(([^()]*→[^()]*)\)|: ([^·]*→[^·]*)/); return m ? (m[1] || m[2]).split('→').map(function (x) { return x.trim(); }) : null; }
   function pathLen(parts) { var t = 0; parts.forEach(function (pl) { for (var i = 0; i < pl.length - 1; i++) t += hav(pl[i], pl[i + 1]); }); return t; }
+  // 역 이름 읽는 법 — 방송은 일본어 발음으로만 나옴 (9/30 福間을 "후쿠마"로 못 알아듣고 지나침)
+  var YOMI = { '福間': '후쿠마', '千鳥': '치도리', '古賀': '코가', '博多': '하카타', '吉塚': '요시즈카', '柚須': '유스', '箱崎': '하코자키', '篠栗': '사사구리', '城戸南蔵院前': '키도난조인마에', '門松': '카도마츠', '天神': '텐진', '祇園': '기온', '中洲川端': '나카스카와바타', '赤坂': '아카사카', '筑前前原': '치쿠젠마에바루', '波多江': '하타에', '福岡空港': '후쿠오카쿠코', '東比恵': '히가시히에', '西鉄二日市': '니시테츠 후츠카이치', '太宰府': '다자이후', '宮地嶽神社前': '미야지다케진자마에', '福間駅前': '후쿠마에키마에', '前原駅北口': '마에바루에키 키타구치' };
+  function yomi(n) { return YOMI[n] ? n + '「' + YOMI[n] + '」' : n; }
   var ALIGHT_VIB = [5000]; // 하차 알림: 5초 동안 끊김 없이 진동 (9/30 요청 · 세기는 웹에서 못 정함, 폰 설정의 진동 세기를 따름)
   function checkAlight(st) {
     var nowm = st.now.min, fresh = gps && gps.t && Date.now() - gps.t < 90000 && inArea([gps.lat, gps.lon]) ? [gps.lat, gps.lon] : null;
@@ -1096,9 +1099,9 @@
       fired[id] = 1;
       try { localStorage.setItem('fk-alert', JSON.stringify(fired)); } catch (x) {}
       var off = (s.off || '').split(' · ').slice(1).join(' · ');
-      if (n >= 3) notify('2정거장 뒤 내려요', names[n - 1] + ' 다음 ' + names[n] + '에서 내리기' + (off ? ' · ' + off : ''), ALIGHT_VIB);
-      else if (s.mode === 'bus') notify('곧 내려요 — 하차 벨 누르기', s.to + (off ? ' · ' + off : ''), ALIGHT_VIB);
-      else notify('곧 내려요', s.to + '에서 내리기' + (off ? ' · ' + off : ''), ALIGHT_VIB);
+      if (n >= 3) notify('2정거장 뒤 내려요', yomi(names[n - 1]) + ' 다음 ' + yomi(names[n]) + '에서 내리기' + (off ? ' · ' + off : ''), ALIGHT_VIB);
+      else if (s.mode === 'bus') notify('곧 내려요 — 하차 벨 누르기', yomi(s.to_ja) + ' ' + s.to + (off ? ' · ' + off : ''), ALIGHT_VIB);
+      else notify('곧 내려요', yomi((s.to_ja || '').replace(/駅$/, '')) + ' ' + s.to + '에서 내리기' + (off ? ' · ' + off : ''), ALIGHT_VIB);
     });
   }
   function notify(title, body, vib) {
