@@ -142,8 +142,9 @@
   function gateTip(e) {
     if (!e || e.type !== 'move') return '';
     var s = e.step;
-    if (s.mode === 'subway' && s.pay === 'card') return '🎫 개찰구에서 실물 카드 터치 — 표 안 사도 됨 (나올 때도 같은 것으로 · 삼성페이는 카드 화면을 띄운 채 대기, 지문은 필요 없음)';
+    if (s.mode === 'subway' && s.pay === 'card') return '🎫 개찰구에서 실물 카드 터치 — 표 안 사도 됨 (나올 때도 들어갈 때와 같은 카드·폰으로 · 삼성페이는 카드 화면을 띄운 채 터치, 지문은 필요 없음)';
     if ((s.mode === 'jr' || s.mode === 'nishitetsu') && s.pay === 'card') return '🎫 역 단말(개찰구)에 실물 카드 터치 — 표 안 사도 됨 · 내릴 때도 같은 카드로';
+    if (s.pay === 'free') return '🎫 무료 — 표·카드 필요 없음';
     if (s.mode === 'bus') return '🎫 뒷문으로 타며 번호표 뽑기 → 내릴 때 앞문 요금함에 현금 ' + yen(s.fare_jpy || 0);
     if (s.pay === 'cash' && /무인역/.test(s.board || '')) return '🎫 무인역: 매표기가 있으면 ' + yen(s.fare_jpy || 0) + ' 표, 없으면 그냥 타고 도착역 精算所(정산소)에서 현금';
     if (s.pay === 'cash' && (s.mode === 'jr' || s.mode === 'nishitetsu' || s.mode === 'subway')) return '🎫 매표기에서 ' + yen(s.fare_jpy || 0) + ' 표 사기 (현금) → 개찰구에 표 넣기';
@@ -154,6 +155,7 @@
     if (e.type === 'move') return which === 'end' ? e.step.b : e.step.a;
     return null;
   }
+  function taskHead(t) { var m = /^(.+?)(?::| — | → | · )/.exec(t || ''); return m ? m[1] : t; }
   function entryTitle(e, short) {
     if (e.type === 'task') return e.text;
     var s = e.step;
@@ -560,7 +562,7 @@
     $('qTimer').classList.toggle('late', !done && !st.waiting && now.min > e.end);
     $('qTimer').textContent = done ? '완료함' : st.waiting ? fmtMin(e.start - now.min) + ' 뒤 시작'
       : now.min > e.end ? '⚠ 예정보다 ' + fmtMin(now.min - e.end) + ' 늦음' : entryTime(e) + ' · ' + fmtMin(e.end - now.min) + ' 남음';
-    $('qTitle').textContent = entryTitle(e, true);
+    $('qTitle').textContent = e.type === 'task' ? taskHead(e.text) : entryTitle(e, true); // 할 일은 제목엔 앞머리만, 전문은 체크칸에 (같은 글 두 번 안 나오게)
     var ob = objectives(e); // 카드엔 3개까지, 나머지는 상세에서
     $('qObjs').innerHTML = ob.slice(0, 3).map(function (o, i) { return objLi(o, !!(P.obj[e.key] || [])[i], 'obj', e.key + '#' + i); }).join('') +
       (ob.length > 3 ? '<li class="more">할 일 ' + (ob.length - 3) + '개 더 보기</li>' : '');
@@ -914,7 +916,7 @@
   function gpsStart() {
     if (watchId != null) return;
     if (!('geolocation' in navigator)) { toast('이 브라우저는 위치를 지원하지 않아요'); return; }
-    watchId = navigator.geolocation.watchPosition(onPos, onPosErr, { enableHighAccuracy: true, maximumAge: 3000, timeout: 30000 });
+    watchId = navigator.geolocation.watchPosition(onPos, onPosErr, { enableHighAccuracy: true, maximumAge: 3000, timeout: 30000 }); gpsSince = Date.now(); gpsUserOff = false;
     setBtn('bGpsOff', true, 'GPS 끄기'); compassStart(); seeking(true);
   }
   function gpsStop() {
@@ -938,16 +940,16 @@
     if (follow) map.setView(ll, Math.max(map.getZoom(), 16), { animate: true });
     update(false);
   }
-  var gpsDenied = false, errToastAt = 0;
+  var gpsDenied = false, gpsUserOff = false, gpsSince = 0, errToastAt = 0;
   function onPosErr(err) {
     if (err.code === 1) { gpsDenied = true; toast('위치 권한이 꺼져 있어요 — 브라우저 설정에서 허용해 주세요'); gpsStop(); return; }
     if (Date.now() - errToastAt > 120000) { errToastAt = Date.now(); toast('위치를 아직 못 잡았어요 (지하·실내일 수 있어요)'); } // 잦은 알림 막기
   }
   // GPS 항상 켜기 (9/30 요청): 앱을 열 때·다시 볼 때 자동으로 켜고, 2분 넘게 위치가 안 오면 다시 잡기
   function gpsKeep() {
-    if (gpsDenied || document.visibilityState !== 'visible') return;
+    if (gpsDenied || gpsUserOff || document.visibilityState !== 'visible') return; // 끄기 버튼으로 끈 동안은 1분마다 다시 켜지 않음 (앱을 다시 열면 켜짐)
     if (watchId == null) return gpsStart();
-    if (gps && gps.t && Date.now() - gps.t > 120000) { navigator.geolocation.clearWatch(watchId); watchId = null; gpsStart(); }
+    if (Date.now() - ((gps && gps.t) || gpsSince) > 120000) { navigator.geolocation.clearWatch(watchId); watchId = null; gpsStart(); } // 처음부터 못 잡은 경우도
   }
   setInterval(gpsKeep, 60000);
   function drawHeading() {
@@ -972,7 +974,7 @@
     follow = !follow; setBtn('bFollow', follow);
     if (follow) { if (!gps) { gpsStart(); toast('위치 찾는 중…'); } else map.setView([gps.lat, gps.lon], Math.max(map.getZoom(), 16)); }
   });
-  $('bGpsOff').addEventListener('click', function () { if (watchId != null) { gpsStop(); toast('GPS 껐어요'); } else { gpsStart(); toast('위치 찾는 중…'); } });
+  $('bGpsOff').addEventListener('click', function () { if (watchId != null) { gpsUserOff = true; gpsStop(); toast('GPS 껐어요 — 하차 알림은 시간 기준으로만'); } else { gpsUserOff = false; gpsStart(); toast('위치 찾는 중…'); } });
   map.on('dragstart', function () { if (follow) { follow = false; setBtn('bFollow', false); } });
 
   // 경로 이탈 200m — 조용히
@@ -995,7 +997,7 @@
     if (!('wakeLock' in navigator)) { toast('이 브라우저는 화면 켜둠을 지원하지 않아요'); return; }
     wakeWanted = !wakeWanted; if (wakeWanted) wakeOn(); else { if (wakeLock) wakeLock.release(); setBtn('bWake', false); }
   });
-  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { if (wakeWanted && !wakeLock) wakeOn(); gpsKeep(); update(false); } });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { if (wakeWanted && !wakeLock) wakeOn(); gpsUserOff = false; gpsKeep(); update(false); } });
 
   // 테마
   function themeUI() {
@@ -1094,31 +1096,52 @@
   function stopNames(s) { var m = (s.off || '').match(/\(([^()]*→[^()]*)\)|: ([^·]*→[^·]*)/); return m ? (m[1] || m[2]).split('→').map(function (x) { return x.trim(); }) : null; }
   function pathLen(parts) { var t = 0; parts.forEach(function (pl) { for (var i = 0; i < pl.length - 1; i++) t += hav(pl[i], pl[i + 1]); }); return t; }
   // 역 이름 읽는 법 — 방송은 일본어 발음으로만 나옴 (9/30 福間을 "후쿠마"로 못 알아듣고 지나침)
-  var YOMI = { '福間': '후쿠마', '千鳥': '치도리', '古賀': '코가', '博多': '하카타', '吉塚': '요시즈카', '柚須': '유스', '箱崎': '하코자키', '篠栗': '사사구리', '城戸南蔵院前': '키도난조인마에', '門松': '카도마츠', '天神': '텐진', '祇園': '기온', '中洲川端': '나카스카와바타', '赤坂': '아카사카', '筑前前原': '치쿠젠마에바루', '波多江': '하타에', '福岡空港': '후쿠오카쿠코', '東比恵': '히가시히에', '西鉄二日市': '니시테츠 후츠카이치', '太宰府': '다자이후', '宮地嶽神社前': '미야지다케진자마에', '福間駅前': '후쿠마에키마에', '前原駅北口': '마에바루에키 키타구치' };
-  function yomi(n) { return YOMI[n] ? n + '「' + YOMI[n] + '」' : n; }
+  var YOMI = { '福間': '후쿠마', '千鳥': '치도리', '古賀': '코가', '博多': '하카타', '吉塚': '요시즈카', '柚須': '유스', '箱崎': '하코자키', '篠栗': '사사구리', '城戸南蔵院前': '키도난조인마에', '門松': '카도마츠', '天神': '텐진', '祇園': '기온', '中洲川端': '나카스카와바타', '赤坂': '아카사카', '筑前前原': '치쿠젠마에바루', '波多江': '하타에', '福岡空港': '후쿠오카쿠코', '東比恵': '히가시히에', '西鉄二日市': '니시테츠 후츠카이치', '太宰府': '다자이후', '宮地嶽神社前': '미야지다케진자마에', '福間駅前': '후쿠마에키마에', '前原駅北口': '마에바루에키 키타구치',
+    '姪浜': '메이노하마', '下山門': '시모야마토', '今宿': '이마주쿠', '九大学研都市': '큐다이각켄토시', '周船寺': '스센지', '室見': '무로미', '藤崎': '후지사키', '西新': '니시진', '唐人町': '도진마치', '大濠公園': '오호리코엔',
+    '二日市': '후츠카이치', '西鉄福岡(天神)': '니시테츠 후쿠오카(텐진)', 'パームビーチ前': '파무비치마에', '二見ヶ浦・パームビーチ前': '후타미가우라·파무비치마에', '東福間': '히가시후쿠마' };
+  function yomi(n) { n = n || ''; var k = YOMI[n] ? n : n.replace(/駅$/, ''); return YOMI[k] ? n + '「' + YOMI[k] + '」' : n; } // 「福間駅」처럼 駅이 붙어도 읽기
   var ALIGHT_VIB = [5000]; // 하차 알림: 5초 동안 끊김 없이 진동 (9/30 요청 · 세기는 웹에서 못 정함, 폰 설정의 진동 세기를 따름)
   function checkAlight(st) {
     var nowm = st.now.min, fresh = gps && gps.t && Date.now() - gps.t < 90000 && inArea([gps.lat, gps.lon]) ? [gps.lat, gps.lon] : null;
     DAYS[st.di].list.forEach(function (e) {
       if (e.type !== 'move' || !TRANSIT[e.step.mode] || e.step.mode === 'shuttle' || !e.step.geom) return;
       if (nowm < e.start - 15 || nowm > e.end + 60) return;
+      if (P.done[e.key] || (cur && cur.day === st.di && cur.idx > e.idx)) return; // 이미 도착·지나간 이동은 안 울림 (내린 뒤 역 근처를 걸을 때 헛알림 막기)
+      var s = e.step;
+      checkTransfer(e, nowm, fresh);
       var id = e.key + '|off2'; if (fired[id]) return;
-      var s = e.step, names = stopNames(s), n = names ? names.length - 1 : 0, total = pathLen(s.geom), th;
+      var geom = xferAt(s) ? [s.geom[s.geom.length - 1]] : s.geom; // 갈아타는 이동은 마지막 토막만 (갈아탈 역은 checkTransfer)
+      var names = stopNames(s), n = names ? names.length - 1 : 0, total = pathLen(geom), th;
       if (n >= 3) th = total * 2 / n + 150;           // 역 간격을 고르게 봤을 때 2정거장 남은 거리 (+조금 일찍)
       else if (s.mode === 'bus') th = 700;             // 버스는 정류장 목록이 없어 700m 전에 "하차 벨"
       else if (!names) th = Math.min(2500, total * 0.3);
       else return;                                     // 1~2정거장짜리는 탈 때 이미 2정거장 전
       var hit = false;
-      if (fresh) { var r = project(fresh, s.geom); hit = r.d < 500 && r.remain <= th && r.remain > 60; }
+      if (fresh) { var r = project(fresh, geom); hit = r.d < 500 && r.remain <= th && r.remain > 60; }
       else if (n >= 3 && (watchId == null || gps)) hit = nowm >= e.end - (e.end - e.start) * 2 / n && nowm <= e.end; // GPS를 껐거나, 잡혔다가 끊겼을 때만 (처음 잡는 중엔 기다림)
       if (!hit) return;
       fired[id] = 1;
       try { localStorage.setItem('fk-alert', JSON.stringify(fired)); } catch (x) {}
-      var off = (s.off || '').split(' · ').slice(1).join(' · ');
+      var off = offExtra(s);
       if (n >= 3) notify('2정거장 뒤 내려요', yomi(names[n - 1]) + ' 다음 ' + yomi(names[n]) + '에서 내리기' + (off ? ' · ' + off : ''), ALIGHT_VIB);
       else if (s.mode === 'bus') notify('곧 내려요 — 하차 벨 누르기', yomi(s.to_ja) + ' ' + s.to + (off ? ' · ' + off : ''), ALIGHT_VIB);
       else notify('곧 내려요', yomi((s.to_ja || '').replace(/駅$/, '')) + ' ' + s.to + '에서 내리기' + (off ? ' · ' + off : ''), ALIGHT_VIB);
     });
+  }
+  function offExtra(s) { return (s.off || '').split(' · ').slice(1).filter(function (x) { return x.indexOf('→') < 0; }).join(' · '); } // 알림엔 역 목록(→) 빼고 출구·갈아타기만
+  // 갈아타기 알림: 경로가 두 토막이고 노선에 "(○○ 환승)"이 있으면 첫 토막 끝(갈아탈 역) 전에 한 번 (10/2 西鉄二日市)
+  function xferAt(s) { var m = s.geom && s.geom.length > 1 && /\(([^()\s]+) 환승\)/.exec(s.line || ''); return m ? m[1] : null; }
+  function checkTransfer(e, nowm, fresh) {
+    var s = e.step, at = xferAt(s), id = e.key + '|xfer';
+    if (!at || fired[id]) return;
+    var len0 = pathLen([s.geom[0]]), th = Math.min(3000, len0 * 0.6), hit = false;
+    if (fresh) { var r = project(fresh, [s.geom[0]]); hit = r.d < 500 && r.remain <= th && r.remain > 60; }
+    else if (watchId == null || gps) { var tx = e.start + (e.end - e.start) * len0 / pathLen(s.geom); hit = nowm >= tx - 4 && nowm <= tx; }
+    if (!hit) return;
+    fired[id] = 1;
+    try { localStorage.setItem('fk-alert', JSON.stringify(fired)); } catch (x) {}
+    var off = offExtra(s);
+    notify('곧 갈아타요', yomi(at) + '에서 내려 갈아타기' + (off ? ' · ' + off : ''), ALIGHT_VIB);
   }
   function notify(title, body, vib) {
     var pat = vib || [250, 120, 250];
