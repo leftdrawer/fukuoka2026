@@ -705,7 +705,7 @@
     }
     $('sheetBody').innerHTML = h; $('sheetBody').scrollTop = 0;
     var list = DAYS[e.day].list;
-    $('sPrev').disabled = e.idx === 0; $('sNext').disabled = e.idx === list.length - 1;
+    $('sPos').textContent = (e.idx > 0 ? '‹ ' : '') + (e.idx + 1) + ' / ' + list.length + (e.idx < list.length - 1 ? ' ›' : '') + ' · 좌우로 밀어 이전·다음';
     closeMenu(true);
     $('sheet').classList.add('show'); $('sheet').setAttribute('aria-hidden', 'false'); $('scrim').classList.add('show');
     if (e.day !== selDay) selectDay(e.day, false);
@@ -722,9 +722,8 @@
     if (!sheetEntry) return;
     var n = DAYS[sheetEntry.day].list[sheetEntry.idx + dir]; if (!n) return;
     openSheet(n); var p = entryPoint(n, 'start'); if (p) whipTo(p);
+    var b = $('sheetBody'); b.classList.remove('slide-l', 'slide-r'); void b.offsetWidth; b.classList.add(dir > 0 ? 'slide-l' : 'slide-r');
   }
-  $('sPrev').addEventListener('click', function () { stepSheet(-1); });
-  $('sNext').addEventListener('click', function () { stepSheet(1); });
   $('sheetBody').addEventListener('click', function (ev) {
     var li = ev.target.closest('li[data-kind]');
     if (li) { toggleObj(li.dataset.kind, li.dataset.id); openSheet(sheetEntry); update(false); return; }
@@ -738,10 +737,15 @@
   });
   (function () { // 시트 아래로 끌어내리기
     [['sheet', 'sheetBody', closeSheet], ['menu', 'menuBody', function () { closeMenu(); }]].forEach(function (c) {
-      var y0 = null, sh = $(c[0]);
-      sh.addEventListener('touchstart', function (e) { if ($(c[1]).scrollTop <= 0) y0 = e.touches[0].clientY; }, { passive: true });
-      sh.addEventListener('touchmove', function (e) { if (y0 != null) { var dy = e.touches[0].clientY - y0; if (dy > 0) sh.style.transform = 'translateY(' + dy + 'px)'; } }, { passive: true });
-      sh.addEventListener('touchend', function (e) { if (y0 == null) return; var dy = e.changedTouches[0].clientY - y0; y0 = null; sh.style.transform = ''; if (dy > 90) c[2](); });
+      var y0 = null, x0 = null, sy = null, sh = $(c[0]);
+      sh.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; sy = e.touches[0].clientY; y0 = $(c[1]).scrollTop <= 0 ? sy : null; }, { passive: true });
+      sh.addEventListener('touchmove', function (e) { if (y0 != null) { var dy = e.touches[0].clientY - y0, dx = e.touches[0].clientX - x0; if (dy > 0 && dy > Math.abs(dx)) sh.style.transform = 'translateY(' + dy + 'px)'; } }, { passive: true });
+      sh.addEventListener('touchend', function (e) {
+        var t = e.changedTouches[0], dx = x0 == null ? 0 : t.clientX - x0, dys = sy == null ? 0 : t.clientY - sy;
+        sh.style.transform = '';
+        if (c[0] === 'sheet' && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dys) * 1.5) { y0 = x0 = null; return stepSheet(dx < 0 ? 1 : -1); } // 왼쪽으로 밀면 다음, 오른쪽으로 밀면 이전
+        if (y0 == null) return; var dy = t.clientY - y0; y0 = null; if (dy > 90 && dy > Math.abs(dx)) c[2]();
+      });
     });
   })();
   function copy(text, btn) {
