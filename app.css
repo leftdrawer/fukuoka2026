@@ -137,6 +137,9 @@ button:focus-visible, a:focus-visible, label:focus-within { outline: 3px solid v
   display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; color: #fff; }
 .q-objs li.on .box, .obj-list li.on .box { background: var(--blue); border-color: var(--blue); }
 .q-objs li.on span:last-child, .obj-list li.on span:last-child { text-decoration: line-through; color: var(--mute); }
+.q-gate { font-size: 14px; font-weight: 800; color: var(--ink); margin: 0 0 4px; }
+.q-gate:empty { display: none; }
+#quest.min .q-gate { font-size: 13px; margin: 3px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .q-coin { font-size: 13px; font-weight: 600; color: var(--ink2); margin-top: 3px; }
 .q-coin:empty { display: none; }
 .q-reward { font-size: 13.5px; color: var(--red); font-weight: 700; margin-top: 4px; }

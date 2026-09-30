@@ -130,6 +130,15 @@
     if (s.pay === 'cash') return '현금만 — 천엔권·동전으로 (1만엔권은 편의점에서 미리 깨기)';
     return '';
   }
+  // 개찰구에서 카드를 찍는지 표를 사는지 (9/30 요청: 역에서 바로 보이게 카드에 한 줄)
+  function gateTip(e) {
+    if (!e || e.type !== 'move') return '';
+    var s = e.step;
+    if (s.mode === 'subway' && s.pay === 'card') return '🎫 개찰구에서 카드·삼성페이 터치 — 표 안 사도 됨 (나올 때도 같은 것으로)';
+    if (s.mode === 'bus') return '🎫 뒷문으로 타며 번호표 뽑기 → 내릴 때 앞문 요금함에 현금 ' + yen(s.fare_jpy || 0);
+    if (s.pay === 'cash' && (s.mode === 'jr' || s.mode === 'nishitetsu' || s.mode === 'subway')) return '🎫 매표기에서 ' + yen(s.fare_jpy || 0) + ' 표 사기 (현금) → 개찰구에 표 넣기';
+    return '';
+  }
   function entryPoint(e, which) {
     if (e.type === 'place') return [e.step.lat, e.step.lon];
     if (e.type === 'move') return which === 'end' ? e.step.b : e.step.a;
@@ -516,7 +525,7 @@
       $('qDone').textContent = before ? '준비물 보기' : '일정 보기'; $('qDone').classList.remove('done'); $('qDetail').textContent = '일정';
       $('qDone').onclick = function () { openMenu(before ? 'bag' : 'log'); };
       $('qDetail').onclick = function () { openMenu('log'); };
-      $('qCoin').textContent = '';
+      $('qCoin').textContent = ''; $('qGate').textContent = '';
       setOrb(before ? 'shaping' : 'breathing');
       return;
     }
@@ -535,6 +544,8 @@
     $('qObjs').innerHTML = ob.slice(0, 3).map(function (o, i) { return objLi(o, !!(P.obj[e.key] || [])[i], 'obj', e.key + '#' + i); }).join('') +
       (ob.length > 3 ? '<li class="more">할 일 ' + (ob.length - 3) + '개 더 보기</li>' : '');
     var ct = coinTip(e); $('qCoin').textContent = ct ? '🪙 ' + ct : '';
+    var gt = gateTip(e); if (!gt && e.type === 'move' && e.step.mode === 'walk' && next && next.type === 'move') { gt = gateTip(next); if (gt) gt = '다음 ' + MODE[next.step.mode].label + ' · ' + gt; }
+    $('qGate').textContent = gt;
     var q = e.type === 'place' && e.step.quest;
     $('qReward').textContent = q && qt === 'main' ? '기도 · ' + q.reward : e.type === 'move' && e.step.line ? e.step.line : '';
     $('qReward').style.color = q && qt === 'main' ? '' : 'var(--ink2)';
