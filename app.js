@@ -106,7 +106,8 @@
     return { d: d, list: list };
   });
   function qtype(e) { return e.type === 'place' ? ((e.step.quest && e.step.quest.type) || 'side') : e.type === 'move' ? 'travel' : 'task'; }
-  function objectives(e) {
+  function objectives(e) { return objectivesRaw(e).map(ruby); }
+  function objectivesRaw(e) {
     if (e.type === 'place') return (e.step.quest && e.step.quest.objectives) || [];
     if (e.type === 'task') return [e.text];
     var s = e.step, m = MODE[s.mode];
@@ -122,7 +123,8 @@
     return o;
   }
   // 지갑 한 줄: 이 퀘스트에 어떤 돈이 필요한지 (버스는 동전·천엔권, 새전은 5엔 등)
-  function coinTip(e) {
+  function coinTip(e) { var r = coinTipRaw(e); return r ? ruby(r) : r; }
+  function coinTipRaw(e) {
     if (!e || !e.step) return '';
     var s = e.step;
     if (s.pay_how) return s.pay_how; // 결제마다 어떤 돈으로 낼지 (9/30 요청: 실제 지갑 기준 가이드)
@@ -139,7 +141,8 @@
     return '';
   }
   // 개찰구에서 카드를 찍는지 표를 사는지 (9/30 요청: 역에서 바로 보이게 카드에 한 줄)
-  function gateTip(e) {
+  function gateTip(e) { var r = gateTipRaw(e); return r ? ruby(r) : r; }
+  function gateTipRaw(e) {
     if (!e || e.type !== 'move') return '';
     var s = e.step;
     if (s.mode === 'subway' && s.pay === 'card') return '🎫 개찰구에서 실물 카드 터치 — 표 안 사도 됨 (나올 때도 들어갈 때와 같은 카드·폰으로 · 삼성페이는 카드 화면을 띄운 채 터치, 지문은 필요 없음)';
@@ -705,12 +708,12 @@
       h += sec('', '할 일', objs, true);
       if (coinTip(e)) h += sec('', '🪙 지갑', ['<li>' + esc(coinTip(e)) + '</li>']);
       h += sec('teacher', '진홍 선생님', (s.teacher || []).map(function (n) { return '<li>' + esc(n) + '</li>'; }));
-      h += sec('warn', '주의할 것', (q.cautions || []).map(function (n) { return '<li>' + esc(n) + '</li>'; }));
+      h += sec('warn', '주의할 것', (q.cautions || []).map(function (n) { return '<li>' + esc(ruby(n)) + '</li>'; }));
       h += '<dl class="sh-grid">';
       if (s.address) h += '<dt>주소</dt><dd lang="ja">' + esc(s.address) + '</dd>';
       if (s.cost_jpy) h += '<dt>예상 비용</dt><dd>' + yen(s.cost_jpy) + ' <span style="color:var(--sub)">≈ ' + won(s.cost_jpy) + '</span>' + (s.cost_est ? '<span class="badge">추정</span>' : '') + '</dd>';
       h += '</dl>';
-      if (s.notes.length) h += '<ul class="sh-notes">' + s.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
+      if (s.notes.length) h += '<ul class="sh-notes">' + s.notes.map(function (n) { return '<li>' + esc(ruby(n)) + '</li>'; }).join('') + '</ul>';
       h += '<div class="sh-actions"><button data-done="1">' + (done ? '완료 취소' : qt === 'main' ? '참배 완료' : '완료') + '</button>' + (kr ? '' : '<button data-copy="' + esc(s.name_ja) + '">일본어 이름 복사</button>') +
         (s.address ? '<button data-copy="' + esc(s.address) + '">주소 복사</button>' : '') + '<button data-fly="1">지도에서 보기</button><button data-exp="1">지출 기록</button>' +
         '<a class="primary wide" href="' + gmapsUrl(e) + '" target="_blank" rel="noopener">구글 지도 길찾기</a></div>';
@@ -727,7 +730,7 @@
       if (s.pay) h += '<dt>결제</dt><dd>' + payChip(e) + ' ' + (s.pay === 'card' ? esc(G.payment.card) + ' 터치' : s.pay === 'cash' ? '현금' : '무료') + '</dd>';
       if (s.fare_jpy != null) h += '<dt>운임</dt><dd>' + (s.fare_jpy ? yen(s.fare_jpy) + ' <span style="color:var(--sub)">≈ ' + won(s.fare_jpy) + '</span>' : '무료') + (s.est_fare ? '<span class="badge">운임 추정</span>' : '') + '</dd>';
       if (s.mode !== 'flight') h += '<dt>거리</dt><dd>' + fmtDist(s.dist_m) + ' (지도 경로)</dd>';
-      if (s.note) h += '<dt>메모</dt><dd>' + esc(s.note) + '</dd>';
+      if (s.note) h += '<dt>메모</dt><dd>' + esc(ruby(s.note)) + '</dd>';
       h += '</dl>';
       h += '<div class="sh-actions">' + (s.mode !== 'flight' ? '<button data-run="1">경로 미리보기</button>' : '') + (s.to_ja ? '<button data-copy="' + esc(s.to_ja) + '">' + esc(s.to_ja) + ' 복사</button>' : '') +
         '<button data-done="1">' + (done ? '도착 취소' : '도착') + '</button>' + (s.mode !== 'flight' ? '<button data-exp="1">운임 기록</button>' : '') +
@@ -1096,9 +1099,21 @@
   function stopNames(s) { var m = (s.off || '').match(/\(([^()]*→[^()]*)\)|: ([^·]*→[^·]*)/); return m ? (m[1] || m[2]).split('→').map(function (x) { return x.trim(); }) : null; }
   function pathLen(parts) { var t = 0; parts.forEach(function (pl) { for (var i = 0; i < pl.length - 1; i++) t += hav(pl[i], pl[i + 1]); }); return t; }
   // 역 이름 읽는 법 — 방송은 일본어 발음으로만 나옴 (9/30 福間을 "후쿠마"로 못 알아듣고 지나침)
-  var YOMI = { '福間': '후쿠마', '千鳥': '치도리', '古賀': '코가', '博多': '하카타', '吉塚': '요시즈카', '柚須': '유스', '箱崎': '하코자키', '篠栗': '사사구리', '城戸南蔵院前': '키도난조인마에', '門松': '카도마츠', '天神': '텐진', '祇園': '기온', '中洲川端': '나카스카와바타', '赤坂': '아카사카', '筑前前原': '치쿠젠마에바루', '波多江': '하타에', '糸島高校前': '이토시마코코마에', '周船寺': '스세지', '美咲が丘': '미사키가오카', '福岡空港': '후쿠오카쿠코', '東比恵': '히가시히에', '西鉄二日市': '니시테츠 후츠카이치', '太宰府': '다자이후', '宮地嶽神社前': '미야지다케진자마에', '福間駅前': '후쿠마에키마에', '前原駅北口': '마에바루에키 키타구치',
+  var YOMI = { '福間': '후쿠마', '千鳥': '치도리', '古賀': '코가', '博多': '하카타', '吉塚': '요시즈카', '柚須': '유스', '箱崎': '하코자키', '篠栗': '사사구리', '城戸南蔵院前': '키도난조인마에', '門松': '카도마츠', '天神': '텐진', '祇園': '기온', '中洲川端': '나카스카와바타', '赤坂': '아카사카', '筑前前原': '치쿠젠마에바루', '波多江': '하타에', '糸島高校前': '이토시마코코마에', '美咲が丘': '미사키가오카', '福岡空港': '후쿠오카쿠코', '東比恵': '히가시히에', '西鉄二日市': '니시테츠 후츠카이치', '太宰府': '다자이후', '宮地嶽神社前': '미야지다케진자마에', '福間駅前': '후쿠마에키마에', '前原駅北口': '마에바루에키 키타구치',
     '姪浜': '메이노하마', '下山門': '시모야마토', '今宿': '이마주쿠', '九大学研都市': '큐다이각켄토시', '周船寺': '스센지', '室見': '무로미', '藤崎': '후지사키', '西新': '니시진', '唐人町': '도진마치', '大濠公園': '오호리코엔',
-    '二日市': '후츠카이치', '西鉄福岡(天神)': '니시테츠 후쿠오카(텐진)', 'パームビーチ前': '파무비치마에', '二見ヶ浦・パームビーチ前': '후타미가우라·파무비치마에', '東福間': '히가시후쿠마' };
+    '二日市': '후츠카이치', '西鉄福岡(天神)': '니시테츠 후쿠오카(텐진)', 'パームビーチ前': '파무비치마에', '二見ヶ浦・パームビーチ前': '후타미가우라·파무비치마에', '東福間': '히가시후쿠마',
+    '昭和バス': '쇼와바스', '西の浦': '니시노우라', '野北': '노기타', '二見ヶ浦': '후타미가우라', '櫻井神社': '사쿠라이진자', '桜井神社': '사쿠라이진자', '糸島': '이토시마', '筑肥線': '치쿠히센', '空港線': '쿠코센', '西鉄': '니시테츠', '大名': '다이묘', '今泉': '이마이즈미', '中洲': '나카스', '住吉': '스미요시', '櫛田神社': '쿠시다진자', '海元寺': '카이겐지', '太宰府天満宮': '다자이후텐만구', '中呉服町': '나카고후쿠마치', '呉服町': '고후쿠마치', '警固': '케고', '天神南': '텐진미나미', '西新': '니시진', '唐津': '카라츠' };
+  // 화면에 나오는 일본어 이름마다 읽는 법을 한 번씩 붙임 (10/1 요청: "한자만 쓰면 어떻게 읽냐") — 역 목록(→) 토막은 건드리지 않음
+  var YOMI_RE = null;
+  function ruby(t) {
+    if (!YOMI) return String(t == null ? '' : t);
+    if (!YOMI_RE) YOMI_RE = new RegExp('(' + Object.keys(YOMI).sort(function (a, b) { return b.length - a.length; }).map(function (k) { return k.replace(/[()]/g, '\\$&'); }).join('|') + ')(駅)?(?!「)', 'g');
+    return String(t == null ? '' : t).split(' · ').map(function (seg) {
+      if (seg.indexOf('→') >= 0) return seg;
+      var seen = {};
+      return seg.replace(YOMI_RE, function (m, k, eki) { var y = YOMI[k]; if (seen[k] || seg.indexOf(y) >= 0) return m; seen[k] = 1; return m + '「' + y + (eki ? '에키' : '') + '」'; });
+    }).join(' · ');
+  }
   function yomi(n) { n = n || ''; var k = YOMI[n] ? n : n.replace(/駅$/, ''); return YOMI[k] ? n + '「' + YOMI[k] + '」' : n; } // 「福間駅」처럼 駅이 붙어도 읽기
   var ALIGHT_VIB = [5000]; // 하차 알림: 5초 동안 끊김 없이 진동 (9/30 요청 · 세기는 웹에서 못 정함, 폰 설정의 진동 세기를 따름)
   function checkAlight(st) {
