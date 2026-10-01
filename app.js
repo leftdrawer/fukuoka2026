@@ -108,6 +108,7 @@
   function qtype(e) { return e.type === 'place' ? ((e.step.quest && e.step.quest.type) || 'side') : e.type === 'move' ? 'travel' : 'task'; }
   function objectives(e) { return objectivesRaw(e).map(ruby); }
   function objectivesRaw(e) {
+    if (e.type === 'move' && e.step.brief) return e.step.brief; // 짧게 정리한 세 줄 (10/1 요청: "일목요연하게") — 긴 안내는 상세의 "자세한 안내"
     if (e.type === 'place') return (e.step.quest && e.step.quest.objectives) || [];
     if (e.type === 'task') return [e.text];
     var s = e.step, m = MODE[s.mode];
@@ -569,8 +570,8 @@
     var ob = objectives(e); // 카드엔 3개까지, 나머지는 상세에서
     $('qObjs').innerHTML = ob.slice(0, 3).map(function (o, i) { return objLi(o, !!(P.obj[e.key] || [])[i], 'obj', e.key + '#' + i); }).join('') +
       (ob.length > 3 ? '<li class="more">할 일 ' + (ob.length - 3) + '개 더 보기</li>' : '');
-    var ct = coinTip(e); $('qCoin').textContent = ct ? '🪙 ' + ct : '';
-    var gt = gateTip(e); if (!gt && e.type === 'move' && e.step.mode === 'walk' && next && next.type === 'move') { gt = gateTip(next); if (gt) gt = '다음 ' + MODE[next.step.mode].label + ' · ' + gt; }
+    var brief = e.type === 'move' && e.step.brief; var ct = brief ? '' : coinTip(e); $('qCoin').textContent = ct ? '🪙 ' + ct : '';
+    var gt = brief ? '' : gateTip(e); if (!gt && e.type === 'move' && e.step.mode === 'walk' && next && next.type === 'move') { gt = next.step.brief ? ruby(next.step.brief[0]) : gateTip(next); if (gt) gt = '다음 ' + MODE[next.step.mode].label + ' · ' + gt; }
     $('qGate').textContent = gt;
     var q = e.type === 'place' && e.step.quest;
     $('qReward').textContent = q && qt === 'main' ? '기도 · ' + q.reward : e.type === 'move' && e.step.line ? e.step.line : '';
@@ -724,6 +725,7 @@
       if (s.to_ja) h += '<div class="sh-ja" lang="ja">' + esc(s.from_ja || '') + ' → ' + esc(s.to_ja) + '</div>';
       h += '<div class="sh-time">' + s.dep + ' 출발 → ' + s.arr + ' 도착 <span style="font-weight:500;color:var(--sub)">(' + fmtMin(e.end - e.start) + ')</span>' + (s.est || s.est_time ? '<span class="badge">시각 추정</span>' : '') + '</div>';
       h += sec('', '할 일', objs, true);
+      if (s.brief) h += sec('', '자세한 안내', [s.board ? '<li>타기: ' + esc(ruby(s.board)) + '</li>' : '', s.off ? '<li>내리기: ' + esc(ruby(s.off)) + '</li>' : ''].filter(Boolean));
       if (coinTip(e)) h += sec('', '🪙 지갑', ['<li>' + esc(coinTip(e)) + '</li>']);
       h += '<dl class="sh-grid">';
       if (s.line) h += '<dt>노선</dt><dd lang="ja">' + esc(s.line) + '</dd>';
@@ -1111,7 +1113,7 @@
     return String(t == null ? '' : t).split(' · ').map(function (seg) {
       if (seg.indexOf('→') >= 0) return seg;
       var seen = {};
-      return seg.replace(YOMI_RE, function (m, k, eki) { var y = YOMI[k]; if (seen[k] || seg.indexOf(y) >= 0) return m; seen[k] = 1; return m + '「' + y + (eki ? '에키' : '') + '」'; });
+      return seg.replace(YOMI_RE, function (m, k, eki, at) { var y = YOMI[k], pre = seg.slice(0, at); if (seen[k] || seg.indexOf(y) >= 0 || pre.split('「').length > pre.split('」').length) return m; seen[k] = 1; return m + '「' + y + (eki ? '에키' : '') + '」'; });
     }).join(' · ');
   }
   function yomi(n) { n = n || ''; var k = YOMI[n] ? n : n.replace(/駅$/, ''); return YOMI[k] ? n + '「' + YOMI[k] + '」' : n; } // 「福間駅」처럼 駅이 붙어도 읽기
