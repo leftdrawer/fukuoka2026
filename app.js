@@ -550,7 +550,7 @@
       $('qReward').textContent = before ? '첫 일정 ' + dayLabel(first).md + ' ' + fmtTime(DAYS[0].list[0].start) + ' ' + entryTitle(DAYS[0].list[0]) : '';
       $('qDist').textContent = ''; $('qNext').textContent = '';
       $('qDone').textContent = before ? '준비물 보기' : '일정 보기'; $('qDone').classList.remove('done'); $('qDetail').textContent = '일정';
-      $('qDone').onclick = function () { openMenu(before ? 'bag' : 'log'); };
+      $('qDone').onclick = function () { openMenu(before ? 'bag' : 'log'); }; if ($('qMap')) $('qMap').style.display = 'none';
       $('qDetail').onclick = function () { openMenu('log'); };
       $('qCoin').textContent = ''; $('qGate').textContent = '';
       setOrb(before ? 'shaping' : 'breathing');
@@ -598,6 +598,7 @@
     $('qDone').textContent = done ? '✓ 완료함 (취소)' : qt === 'main' ? '참배 완료' : e.type === 'move' ? '도착' : '완료';
     $('qDone').classList.toggle('done', done);
     $('qDone').onclick = function () { toggleDone(e); };
+    var qm = $('qMap'); if (qm) { var okm = e.type !== 'task' && e.step && (e.type === 'place' ? e.step.lat : e.step.b) && !isKorea(e.type === 'place' ? [e.step.lat, e.step.lon] : e.step.b); qm.style.display = okm ? '' : 'none'; if (okm) qm.href = gmapsNowUrl(e); }
     var isQR = e.type === 'task' && /QR/.test(e.text);
     $('qDetail').textContent = isQR ? '입국 QR 보기' : '자세히';
     $('qDetail').onclick = function () { if (isQR) openQR(); else openSheet(e); };
@@ -682,6 +683,13 @@
     if (e.type === 'place') return u + '&destination=' + s.lat + ',' + s.lon;
     var m = MODE[s.mode];
     return u + '&origin=' + s.a[0] + ',' + s.a[1] + '&destination=' + s.b[0] + ',' + s.b[1] + (m.gm ? '&travelmode=' + m.gm : '');
+  }
+  // 지금 위치 → 다음 목적지, 지금 출발 기준 (10/1 요청: 구글 지도를 앱에서 바로) — 출발지를 비우면 구글 지도가 내 위치로 잡음
+  function gmapsNowUrl(e) {
+    var s = e.step, u = 'https://www.google.com/maps/dir/?api=1';
+    if (e.type === 'place') return u + '&destination=' + s.lat + ',' + s.lon;
+    var m = MODE[s.mode] || {};
+    return u + '&destination=' + s.b[0] + ',' + s.b[1] + '&travelmode=' + (m.gm || 'transit');
   }
   function sec(cls, title, items, raw) {
     if (!items || !items.length) return '';
