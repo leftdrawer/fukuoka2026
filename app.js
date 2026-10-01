@@ -537,7 +537,15 @@
   }
 
   // ------------------------------------------------------------ 퀘스트 카드
+  // 카드 좌우로 밀어 이전·다음 일정 미리 보기 (10/1 요청) — 지금 일정(cur)·알림은 그대로, 카드만 넘겨 봄
+  var qPeek = 0, qPeekT = 0;
+  function setPeek(n) { qPeek = n; clearTimeout(qPeekT); if (n) qPeekT = setTimeout(function () { setPeek(0); if (lastState) renderQuest(lastState); }, 90000); $('quest').classList.toggle('peek', !!n); }
   function renderQuest(st) {
+    if (qPeek && st.di >= 0 && st.e) {
+      var pl = DAYS[st.di].list, pi = Math.max(0, Math.min(pl.length - 1, st.e.idx + qPeek));
+      if (pi === st.e.idx) setPeek(0);
+      else st = Object.assign({}, st, { e: pl[pi], waiting: pl[pi].start > st.now.min, peeked: pi - st.e.idx });
+    }
     var now = st.now, e = st.e;
     if (st.di < 0) {
       var first = DAYS[0].d.date, before = now.date < first;
@@ -566,6 +574,7 @@
     $('qTimer').classList.toggle('late', !done && !st.waiting && now.min > e.end);
     $('qTimer').textContent = done ? '완료함' : st.waiting ? fmtMin(e.start - now.min) + ' 뒤 시작'
       : now.min > e.end ? '⚠ 예정보다 ' + fmtMin(now.min - e.end) + ' 늦음' : entryTime(e) + ' · ' + fmtMin(e.end - now.min) + ' 남음';
+    if (st.peeked) $('qTimer').textContent = entryTime(e) + ' · ' + (st.peeked > 0 ? st.peeked + '개 뒤 일정' : -st.peeked + '개 앞 일정');
     $('qTitle').textContent = e.type === 'task' ? taskHead(e.text) : entryTitle(e, true); // 할 일은 제목엔 앞머리만, 전문은 체크칸에 (같은 글 두 번 안 나오게)
     var ob = objectives(e); // 카드엔 3개까지, 나머지는 상세에서
     $('qObjs').innerHTML = ob.slice(0, 3).map(function (o, i) { return objLi(o, !!(P.obj[e.key] || [])[i], 'obj', e.key + '#' + i); }).join('') +
@@ -595,6 +604,7 @@
     $('qDist').innerHTML = txt;
     $('qNext').innerHTML = next ? '<span class="lb">다음</span><span class="tm">' + fmtTime(next.start) + '</span>' + modeChip(next) + '<span class="nm">' + esc(entryTitle(next, true)) + '</span>'
       : '<span class="lb">다음</span><span class="nm">' + (st.di + 1 < DAYS.length ? '내일 ' + esc(DAYS[st.di + 1].d.theme) : '여행 마지막 일정') + '</span>';
+    if (st.peeked) $('qNext').innerHTML = '<span class="lb back">↺ 지금 일정으로</span><span class="nm">' + esc(entryTitle(lastState.e, true)) + '</span>';
     $('qDone').textContent = done ? '✓ 완료함 (취소)' : qt === 'main' ? '참배 완료' : e.type === 'move' ? '도착' : '완료';
     $('qDone').classList.toggle('done', done);
     $('qDone').onclick = function () { toggleDone(e); };
@@ -636,7 +646,7 @@
   })();
   // 카드 접기 (9/30 요청): 아래로 밀면 제목 한 줄만 남기고 지도를 비움, 위로 밀거나 접힌 카드를 톡 누르면 다시 펼침
   (function () {
-    var q = $('quest'), y0 = null, x0 = 0, moved = false, animT = 0;
+    var q = $('quest'), y0 = null, x0 = 0, moved = false, animT = 0, inList = false;
     // 접기·펼치기를 높이 애니메이션으로 (10/1 요청): 접을 땐 내용이 흐려지며 카드가 줄어들고, 펼칠 땐 늘어나며 내용이 떠오름
     function setMin(on) {
       try { localStorage.setItem('fk-qmin', on ? '1' : ''); } catch (e) {}
@@ -658,18 +668,35 @@
         inner.style.transition = ''; inner.style.height = '';
       }, 380);
     }
+    function slideQuest(dir) {
+      var st = lastState; if (!st || st.di < 0 || !st.e) { settle(); return; }
+      var L = DAYS[st.di].list, target = st.e.idx + qPeek + dir;
+      if (target < 0 || target >= L.length) { settle(); return; } // 하루의 처음·끝이면 제자리로 튕김
+      var go = function () { setPeek(target - st.e.idx); renderQuest(lastState); };
+      if (REDUCED || !q.animate) { q.style.transform = ''; go(); return; }
+      var x = parseFloat((q.style.transform.match(/-?[\d.]+/) || [0])[0]) || 0;
+      q.style.transition = '';
+      var out = q.animate([{ transform: 'translateX(' + x + 'px)', opacity: 1 }, { transform: 'translateX(' + (-dir * 120) + 'px)', opacity: 0 }], { duration: 150, easing: 'cubic-bezier(.4,0,1,1)' });
+      out.onfinish = function () {
+        go(); q.style.transform = '';
+        q.animate([{ transform: 'translateX(' + (dir * 120) + 'px)', opacity: 0 }, { transform: 'translateX(0)', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(.22,.9,.24,1)' });
+      };
+    }
     function settle() { if (!q.style.transform) return; q.style.transition = 'transform .28s cubic-bezier(.22,.9,.24,1)'; q.style.transform = ''; setTimeout(function () { q.style.transition = ''; }, 300); }
     try { if (localStorage.getItem('fk-qmin')) q.classList.add('min'); } catch (e) {}
     q.addEventListener('pointerdown', function (e) {
       // 할 일 목록이 길어 안에서 스크롤할 수 있으면 거기서 민 건 접기로 보지 않음 (9/30 버그: 읽으려고 내리면 카드가 접힘)
       var sc = e.target.closest && e.target.closest('.q-objs');
-      if (sc && sc.scrollHeight > sc.clientHeight + 2) { y0 = null; moved = false; return; }
+      inList = !!(sc && sc.scrollHeight > sc.clientHeight + 2); // 목록 안에서는 위아래는 스크롤, 좌우만 넘기기
       y0 = e.clientY; x0 = e.clientX; moved = false;
     });
     q.addEventListener('pointermove', function (e) {
       if (y0 == null) return;
       var d = e.clientY - y0; if (Math.abs(d) > 10) moved = true;
       if (REDUCED) return; // 손가락을 따라 카드가 살짝 끌려옴 (놓으면 접히거나 제자리로)
+      var dxm = e.clientX - x0;
+      if (Math.abs(dxm) > Math.abs(d) && Math.abs(dxm) > 10) { moved = true; q.style.transform = 'translateX(' + Math.max(-80, Math.min(80, dxm * 0.5)) + 'px)'; return; }
+      if (inList) { moved = false; return; }
       var mn = q.classList.contains('min');
       if (!mn && d > 0) q.style.transform = 'translateY(' + Math.min(d * 0.45, 56) + 'px)';
       else if (mn && d < 0) q.style.transform = 'translateY(' + Math.max(d * 0.3, -24) + 'px)';
@@ -677,10 +704,12 @@
     q.addEventListener('pointerup', function (e) {
       if (y0 == null) return;
       var dy = e.clientY - y0, dx = e.clientX - x0; y0 = null;
+      if (Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && !q.classList.contains('min')) { slideQuest(dx < 0 ? 1 : -1); return; }
       settle();
-      if (Math.abs(dy) >= 40 && Math.abs(dy) > Math.abs(dx)) setMin(dy > 0);
+      if (!inList && Math.abs(dy) >= 40 && Math.abs(dy) > Math.abs(dx)) setMin(dy > 0);
     });
     q.addEventListener('pointercancel', function () { y0 = null; settle(); });
+    $('qNext').addEventListener('click', function (ev) { if (!qPeek) return; ev.stopPropagation(); var back = qPeek > 0 ? -1 : 1; setPeek(0); if (REDUCED || !q.animate) { renderQuest(lastState); return; } q.animate([{ transform: 'translateX(' + (back * 60) + 'px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(.22,.9,.24,1)' }); renderQuest(lastState); });
     q.addEventListener('click', function (e) { // 민 뒤의 클릭, 접힌 카드의 클릭은 안쪽 버튼·체크칸으로 안 보냄
       if (moved || q.classList.contains('min')) { e.stopPropagation(); e.preventDefault(); if (!moved) setMin(false); moved = false; }
     }, true);

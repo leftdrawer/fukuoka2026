@@ -12,7 +12,7 @@
 
 ## 0. 지금 상태 (새 세션은 여기부터)
 
-마지막 갱신: 10/1 (목) 11:05
+마지막 갱신: 10/1 (목) 11:10
 
 - 어디: 10/1 11:0x 「二見ヶ浦 / 月と太陽糸島茶房前」 정류장 도착 → 夫婦岩 걸어서 5분 → 사쿠라이 신사 → 카페(정류장 앞 月と太陽 糸島茶房) → ㉕번 14:29 (놓치면 15:59·17:29, 정류장 시간표 사진)
 - 내일 10/1 (목): 알람 08:00·08:15 → 08:15 기상 → 09:00 준비(팔토시·100엔 4개 + 筑肥線 표 동전 500+100+10×4·천엔권·5엔) → 09:24쯤 天神 지하철 → 筑肥線 직통 筑前前原(표 640엔, 카드 터치 안 됨) → 前原駅北口 10:30 昭和バス 25번(200엔) → PALMBEACH前 → 후타미가우라 → 사쿠라이 신사(걸어서 35분, 새 정류장 「大口・櫻井神社西口」도 있음) → 카페(月と太陽 糸島茶房 등, SUNSET은 목요일 휴무) → 14:28 버스(놓치면 15:58·17:28) → 筑前前原 → 天神 → 호텔 (선택: 코인 세탁 — 세탁 300엔 + 건조 30분 100엔, 100엔 동전만 4~5개) → 저녁 → 게이바(선택)
@@ -34,7 +34,7 @@
 - 빌드: 집 컴퓨터에는 `_build/`(git 제외 — build.py·guide.py·test.mjs·HANDOFF.md)가 있어 `data.js`를 다시 만든다. 클라우드 세션이 `data.js`를 직접 고치면, 집 컴퓨터 세션이 그 내용을 build.py·guide.py로 옮겨야 다음 빌드 때 안 지워진다 (9/30 00:48 옮김 완료 — 다시 빌드한 결과가 클라우드 data.js와 1줄 빼고 같음)
 - 시각: 집 컴퓨터(Windows Git Bash)에서는 `TZ=Asia/Tokyo date`가 UTC를 보여 틀린다 → `python -c "from datetime import *; print(datetime.now(timezone(timedelta(hours=9))))"`로 확인
 - 세션 현황 (13:59): 원래 세션 「26년 가을 후쿠오카 기도 여행」이 다시 연결됨(은호당님 확인). 대화는 클라우드 세션 「목욕탕 경험 및 환전」 한 곳에서만 이어가기로 함 — 두 세션이 동시에 main에 올리면 충돌하고, 집 컴퓨터 세션이 _build로 다시 빌드하면 아래 "빌드 원본으로 옮길 것"이 지워짐. 집 컴퓨터 세션은 pull → 옮기기 → 테스트 뒤에만 빌드·푸시
-- 빌드 원본으로 옮길 것 (집 컴퓨터 세션 몫): 10/1 클라우드: app.js setMin 높이 애니메이션·settle·끌기 따라오기, app.css .q-anim·.q-collapsing·.q-expanding·qRise, index.html #qMap·app.js gmapsNowUrl·app.css .q-actions 3칸, data.js 이동 9곳 brief(세 줄 요약), app.js objectivesRaw의 brief·카드 🎫/🪙 숨김·상세 "자세한 안내"·ruby 괄호 안 건너뛰기, app.js ruby()·YOMI_RE·objectivesRaw·coinTipRaw·gateTipRaw(화면 글에 읽는 법 자동), YOMI 30여 개 추가, data.js 39·41·51번 board·off·pay_how, 지출 s-1001-chikuhi1 / 11:23 클라우드가 data.js에 지출 s-0930-vend(160엔)·지갑 첫 줄을 고치고, app.js·app.css에 퀘스트 카드 접기(#quest.min, fk-qmin)를 넣음. 11:28에 index.html·app.js·app.css에 개찰구 한 줄(#qGate, gateTip), data.js에 9/30 시각 20곳, 11:34에 app.js GPS 자동 켜기(gpsKeep·gpsDenied)·하차 진동 ALIGHT_VIB [5000]·notify(vib), 앞서 app.js·app.css 기도 녹음(isPrayer·astore·recRender·recShare, 녹음 항목 위에선 가로 밀기 안 함), 앞서 data.js 남은 결제 27곳 pay_how·coin_guide 3줄, app.js coinTip이 pay_how 먼저, 앞서 data.js 9/30 12:08 열차 기준 시각·센고쿠유 3단계 삭제(새 32번 JR→지하철 도보)·10/1 38·39·51·52를 天神으로(天神↔赤坂 구간은 직선), app.js 이동 할 일 순서(objectives)와 체크 옮기기(P.objv2), 앞서 data.js 남은 이동 13곳 board·off·센고쿠유·결제 안내를 고침, 앞서 index.html·app.js·app.css 상세 시트 좌우 밀기·✕ 닫기(#sClose.sh-x, #sPos, sPrev·sNext 없앰), 앞서 app.js 내리기 알림(checkAlight·stopNames·pathLen, gps.t)·data.js 19번 board 3·4호차·25번 off 역 목록·est_time·board 문구("다음 열차의")·점심 이름·objectives·미야지다케 버스 주의 문구를 고침 — app.js·app.css가 _build에서 만들어지는 파일이면 옮길 것. / 03:50 클라우드가 data.js의 미야지다케신사 cautions를 고침 — "돌계단이 가파름 — 비 오면 특히 조심" 한 줄을 두 줄로 바꿈 (85단·일부 손잡이·뒤돌아보면 바다까지 일직선 / 사무소 0940-52-0016 무료 송영 · 개운전 회랑으로 오쿠노미야 계단 없이). `_build/test.mjs`는 클라우드에 없어서 못 돌림 / 9/30 저녁 클라우드 추가분: app.js YOMI(역 읽기 20여 개 더)·yomi(駅 붙어도)·checkAlight(끝난 이동 헛알림 막기, 갈아타는 이동은 마지막 토막만)·xferAt·checkTransfer(환승 알림)·offExtra(알림에 역 목록 빼기)·gpsUserOff·gpsSince·gateTip(무료·삼성페이 문구)·taskHead(할 일 카드 제목)·seed_del·.q-objs 스크롤 제스처·day.pois 핀, app.css #toast width·.poi·.q-objs·메뉴 탭, .sheetNav 삭제, index.html 메뉴 ✕
+- 빌드 원본으로 옮길 것 (집 컴퓨터 세션 몫): 10/1 클라우드: app.js qPeek·setPeek·slideQuest(카드 좌우 넘기기)·inList, app.css #quest.peek, app.js setMin 높이 애니메이션·settle·끌기 따라오기, app.css .q-anim·.q-collapsing·.q-expanding·qRise, index.html #qMap·app.js gmapsNowUrl·app.css .q-actions 3칸, data.js 이동 9곳 brief(세 줄 요약), app.js objectivesRaw의 brief·카드 🎫/🪙 숨김·상세 "자세한 안내"·ruby 괄호 안 건너뛰기, app.js ruby()·YOMI_RE·objectivesRaw·coinTipRaw·gateTipRaw(화면 글에 읽는 법 자동), YOMI 30여 개 추가, data.js 39·41·51번 board·off·pay_how, 지출 s-1001-chikuhi1 / 11:23 클라우드가 data.js에 지출 s-0930-vend(160엔)·지갑 첫 줄을 고치고, app.js·app.css에 퀘스트 카드 접기(#quest.min, fk-qmin)를 넣음. 11:28에 index.html·app.js·app.css에 개찰구 한 줄(#qGate, gateTip), data.js에 9/30 시각 20곳, 11:34에 app.js GPS 자동 켜기(gpsKeep·gpsDenied)·하차 진동 ALIGHT_VIB [5000]·notify(vib), 앞서 app.js·app.css 기도 녹음(isPrayer·astore·recRender·recShare, 녹음 항목 위에선 가로 밀기 안 함), 앞서 data.js 남은 결제 27곳 pay_how·coin_guide 3줄, app.js coinTip이 pay_how 먼저, 앞서 data.js 9/30 12:08 열차 기준 시각·센고쿠유 3단계 삭제(새 32번 JR→지하철 도보)·10/1 38·39·51·52를 天神으로(天神↔赤坂 구간은 직선), app.js 이동 할 일 순서(objectives)와 체크 옮기기(P.objv2), 앞서 data.js 남은 이동 13곳 board·off·센고쿠유·결제 안내를 고침, 앞서 index.html·app.js·app.css 상세 시트 좌우 밀기·✕ 닫기(#sClose.sh-x, #sPos, sPrev·sNext 없앰), 앞서 app.js 내리기 알림(checkAlight·stopNames·pathLen, gps.t)·data.js 19번 board 3·4호차·25번 off 역 목록·est_time·board 문구("다음 열차의")·점심 이름·objectives·미야지다케 버스 주의 문구를 고침 — app.js·app.css가 _build에서 만들어지는 파일이면 옮길 것. / 03:50 클라우드가 data.js의 미야지다케신사 cautions를 고침 — "돌계단이 가파름 — 비 오면 특히 조심" 한 줄을 두 줄로 바꿈 (85단·일부 손잡이·뒤돌아보면 바다까지 일직선 / 사무소 0940-52-0016 무료 송영 · 개운전 회랑으로 오쿠노미야 계단 없이). `_build/test.mjs`는 클라우드에 없어서 못 돌림 / 9/30 저녁 클라우드 추가분: app.js YOMI(역 읽기 20여 개 더)·yomi(駅 붙어도)·checkAlight(끝난 이동 헛알림 막기, 갈아타는 이동은 마지막 토막만)·xferAt·checkTransfer(환승 알림)·offExtra(알림에 역 목록 빼기)·gpsUserOff·gpsSince·gateTip(무료·삼성페이 문구)·taskHead(할 일 카드 제목)·seed_del·.q-objs 스크롤 제스처·day.pois 핀, app.css #toast width·.poi·.q-objs·메뉴 탭, .sheetNav 삭제, index.html 메뉴 ✕
 - 이전 세션 「26년 가을 후쿠오카 기도 여행」은 집 컴퓨터에서 돌던 원격 제어 세션이다. 거기서 쓰던 루트 `CLAUDE.md`는 `.gitignore`로 빠진 로컬 파일이다. 9/29 22:50 이전의 대화는 9/30 00:48에 「3. 시간순 기록」 맨 앞에 옮겨 적음
 
 ---
@@ -177,6 +177,7 @@
 - [x] 전체 점검 (9/30 밤): 끝난 이동의 헛하차 알림 막기, 환승 알림(10/2 西鉄二日市), 역 읽기 20여 개 추가, 알림에서 역 목록 빼기, GPS 끄기 버튼이 1분 만에 다시 켜지던 것, 긴 알림이 화면 반쪽으로 좁던 것, 무료 셔틀 🎫 줄, 할 일 카드에서 같은 글 두 번 나오던 것, 안 쓰는 CSS(.sheetNav) 삭제
 - [ ] 긴 이동 카드일 때 지도 버튼이 위 막대(날짜·도장)를 가림 — 카드를 접으면 풀림
 - [ ] 이동 카드의 🎫 줄·할 일 첫 줄·🪙 줄이 비슷한 말을 되풀이 — 한 줄로 합칠 방법
+- [x] 퀘스트 카드 좌우로 밀어 이전·다음 일정 미리 보기 + 미끄러지는 애니메이션, 「↺ 지금 일정으로」 (10/1 11:1x)
 - [ ] 일정 밀기 버튼: 늦었을 때 앱에서 "남은 오늘 일정 +N분"을 한 번에 (지금은 에이전트가 data.js를 고침)
 - [x] 이동 카드에 개찰구 한 줄 — 지하철 카드 터치 / JR·니시테츠 매표기 표 / 버스 번호표·현금, 걷는 중이면 "다음 ○○ ·" (9/30 11:28)
 - [x] 9/30 늦잠 기준으로 앱 시간 다시 맞춤 (9/30 11:28)
@@ -2086,4 +2087,18 @@
 - data.js 43번 주의할 것: 돌아가는 버스 정류장 이름·㉕ 평일 시각, 할 일 첫 줄(부부바위까지 도보 5분)
 - data.js 47번 카페: 月と太陽 糸島茶房은 돌아가는 버스 정류장 바로 앞
 - data.js 49번: 14:29, 타는 곳 「月と太陽糸島茶房前」, ㉕ 「野北・筑前前原駅方面」, ⑤ 伊都営業所方面은 타지 않기
+
+### 10/1 (목) 11:10 — 카드 좌우로 넘기기는 왜 없나
+
+요청
+- "퀘스트에서 양옆으로 스크롤하면 애니메이션으로 이전 다음 퀘스트로 넘어가는 거 왜 구현 안돼있지? 전에 시켰는데"
+
+그 밖에
+- 9/30 11:38에 만든 좌우 넘기기는 "자세히"를 눌러 여는 상세 시트에만 넣었고, 지도 위 퀘스트 카드에는 안 넣었음 — 요청을 좁게 읽은 에이전트 잘못
+
+앱에 반영
+- app.js: 퀘스트 카드를 왼쪽으로 밀면 다음 일정, 오른쪽으로 밀면 앞 일정(60px 넘게, 가로가 세로의 1.5배 넘을 때). 미는 동안 카드가 손가락을 따라오고(최대 80px), 놓으면 0.15초 동안 옆으로 빠졌다가 반대쪽에서 0.26초 동안 미끄러져 들어옴. 하루의 처음·끝에선 제자리로 튕김
+- 넘겨 보는 동안: 시각 줄에 "11:50–12:25 · 1개 뒤 일정", 카드 테두리에 색 띠, 맨 아래 「↺ 지금 일정으로 · (지금 일정 이름)」 — 누르면 돌아옴. 90초 동안 손대지 않으면 저절로 지금 일정으로. 하차 알림·지금 일정 판단은 그대로
+- 할 일 목록이 길어 안에서 스크롤될 때도 좌우 넘기기는 됨 (위아래는 목록 스크롤)
+- 헤드리스 크롬(390×844, 10/1 11:20): 왼쪽 밀기 → 「사쿠라이 신사까지」(1개 뒤) → 한 번 더 → 「사쿠라이 신사」(2개 뒤) → 오른쪽 → 1개 뒤 → 「↺ 지금 일정으로」 → 「사쿠라이 후타미가우라」 → 오른쪽 → 「후타미가우라까지」(1개 앞). 접기 애니메이션 테스트도 그대로 통과, 자바스크립트 오류 없음
 

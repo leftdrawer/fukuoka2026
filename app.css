@@ -390,3 +390,8 @@ button:focus-visible, a:focus-visible, label:focus-within { outline: 3px solid v
 #quest.q-expanding .q-objs, #quest.q-expanding .q-coin, #quest.q-expanding .q-reward, #quest.q-expanding .q-dist, #quest.q-expanding .q-next, #quest.q-expanding .q-actions, #quest.q-expanding .slot, #quest.q-expanding .orb { animation: qRise .36s cubic-bezier(.22,.9,.24,1) both; }
 @keyframes qRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { #quest.q-expanding * { animation: none !important; } }
+
+/* 카드 좌우 넘기기 — 미리 보는 중 표시 (10/1) */
+#quest.peek .q-inner { box-shadow: var(--shadow), inset 0 0 0 2px color-mix(in srgb, var(--qc, var(--blue)) 45%, transparent); }
+#quest.peek .q-next { cursor: pointer; }
+#quest.peek .q-next .lb.back { color: var(--blue); font-weight: 800; }
