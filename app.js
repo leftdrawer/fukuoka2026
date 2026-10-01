@@ -636,8 +636,29 @@
   })();
   // 카드 접기 (9/30 요청): 아래로 밀면 제목 한 줄만 남기고 지도를 비움, 위로 밀거나 접힌 카드를 톡 누르면 다시 펼침
   (function () {
-    var q = $('quest'), y0 = null, x0 = 0, moved = false;
-    function setMin(on) { q.classList.toggle('min', on); try { localStorage.setItem('fk-qmin', on ? '1' : ''); } catch (e) {} }
+    var q = $('quest'), y0 = null, x0 = 0, moved = false, animT = 0;
+    // 접기·펼치기를 높이 애니메이션으로 (10/1 요청): 접을 땐 내용이 흐려지며 카드가 줄어들고, 펼칠 땐 늘어나며 내용이 떠오름
+    function setMin(on) {
+      try { localStorage.setItem('fk-qmin', on ? '1' : ''); } catch (e) {}
+      var inner = q.querySelector('.q-inner');
+      if (q.classList.contains('min') === on && !q.classList.contains('q-anim')) return;
+      if (REDUCED || !inner) { q.classList.toggle('min', on); return; }
+      clearTimeout(animT);
+      inner.style.transition = ''; inner.style.height = '';
+      var h0 = inner.offsetHeight;
+      q.classList.toggle('min', on); var h1 = inner.offsetHeight;
+      if (on) q.classList.remove('min'); // 접을 땐 내용을 보이게 둔 채 줄이고, 끝나면 min
+      q.classList.add('q-anim', on ? 'q-collapsing' : 'q-expanding'); q.classList.remove(on ? 'q-expanding' : 'q-collapsing');
+      inner.style.height = h0 + 'px'; void inner.offsetHeight;
+      inner.style.transition = 'height .36s cubic-bezier(.22,.9,.24,1)';
+      inner.style.height = h1 + 'px';
+      animT = setTimeout(function () {
+        if (on) q.classList.add('min');
+        q.classList.remove('q-anim', 'q-collapsing', 'q-expanding');
+        inner.style.transition = ''; inner.style.height = '';
+      }, 380);
+    }
+    function settle() { if (!q.style.transform) return; q.style.transition = 'transform .28s cubic-bezier(.22,.9,.24,1)'; q.style.transform = ''; setTimeout(function () { q.style.transition = ''; }, 300); }
     try { if (localStorage.getItem('fk-qmin')) q.classList.add('min'); } catch (e) {}
     q.addEventListener('pointerdown', function (e) {
       // 할 일 목록이 길어 안에서 스크롤할 수 있으면 거기서 민 건 접기로 보지 않음 (9/30 버그: 읽으려고 내리면 카드가 접힘)
@@ -645,13 +666,21 @@
       if (sc && sc.scrollHeight > sc.clientHeight + 2) { y0 = null; moved = false; return; }
       y0 = e.clientY; x0 = e.clientX; moved = false;
     });
-    q.addEventListener('pointermove', function (e) { if (y0 != null && Math.abs(e.clientY - y0) > 10) moved = true; });
+    q.addEventListener('pointermove', function (e) {
+      if (y0 == null) return;
+      var d = e.clientY - y0; if (Math.abs(d) > 10) moved = true;
+      if (REDUCED) return; // 손가락을 따라 카드가 살짝 끌려옴 (놓으면 접히거나 제자리로)
+      var mn = q.classList.contains('min');
+      if (!mn && d > 0) q.style.transform = 'translateY(' + Math.min(d * 0.45, 56) + 'px)';
+      else if (mn && d < 0) q.style.transform = 'translateY(' + Math.max(d * 0.3, -24) + 'px)';
+    });
     q.addEventListener('pointerup', function (e) {
       if (y0 == null) return;
       var dy = e.clientY - y0, dx = e.clientX - x0; y0 = null;
+      settle();
       if (Math.abs(dy) >= 40 && Math.abs(dy) > Math.abs(dx)) setMin(dy > 0);
     });
-    q.addEventListener('pointercancel', function () { y0 = null; });
+    q.addEventListener('pointercancel', function () { y0 = null; settle(); });
     q.addEventListener('click', function (e) { // 민 뒤의 클릭, 접힌 카드의 클릭은 안쪽 버튼·체크칸으로 안 보냄
       if (moved || q.classList.contains('min')) { e.stopPropagation(); e.preventDefault(); if (!moved) setMin(false); moved = false; }
     }, true);

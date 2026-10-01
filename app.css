@@ -383,3 +383,10 @@ button:focus-visible, a:focus-visible, label:focus-within { outline: 3px solid v
 
 /* 카드의 구글 지도 버튼 (10/1) — 링크를 버튼처럼 */
 .q-actions a.q-btn{display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit}
+
+/* 카드 접기·펼치기 애니메이션 (10/1) */
+#quest.q-anim .q-inner { overflow: hidden; }
+#quest.q-collapsing .q-objs, #quest.q-collapsing .q-coin, #quest.q-collapsing .q-reward, #quest.q-collapsing .q-dist, #quest.q-collapsing .q-next, #quest.q-collapsing .q-actions, #quest.q-collapsing .slot, #quest.q-collapsing .orb { opacity: 0; transform: translateY(8px); transition: opacity .18s ease, transform .3s ease; }
+#quest.q-expanding .q-objs, #quest.q-expanding .q-coin, #quest.q-expanding .q-reward, #quest.q-expanding .q-dist, #quest.q-expanding .q-next, #quest.q-expanding .q-actions, #quest.q-expanding .slot, #quest.q-expanding .orb { animation: qRise .36s cubic-bezier(.22,.9,.24,1) both; }
+@keyframes qRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { #quest.q-expanding * { animation: none !important; } }
