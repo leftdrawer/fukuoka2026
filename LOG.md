@@ -12,10 +12,10 @@
 
 ## 0. 지금 상태 (새 세션은 여기부터)
 
-마지막 갱신: 10/2 (금) 18:35
+마지막 갱신: 10/2 (금) 18:54
 
-- 어디: 18:2x 博多駅 筑紫口 → 福岡空港 국제선 직행버스 안(카드 터치 됨, 국제선 18:41쯤 도착 — 구글 지도 기준) → 체크인 → 국제선 3층 식사(버거 원하심) → ZE650 20:40
-- 10/2 (금, 다자이후 뺌 — 03:51 은호당님 결정): 10:32 체크아웃 · 짐 끌고 天神 3번 출구 → 지하철 1정거장 中洲川端 → 코인로커 대형 800엔(넣음) → 6번 출구 → 櫛田神社 11:15~12:10 → 海元寺 12:25~13:00 → 나카스·가와바타 점심·자유시간 → 17:35 中洲川端 로커에서 짐 → 17:50 지하철 바로 공항 (갈아타기 없음) → ZE650 20:40
+- 어디: 福岡空港 국제선 (18:41쯤 직행버스로 도착한 것으로 봄 — 가정) → 3층 체크인 → 3층 HAKATA FOOD HALL 식사(버거 원하심) → 보안·출국심사 → ZE650 20:40
+- 10/2 (금, 다자이후 뺌 — 03:51 은호당님 결정): 10:32 체크아웃 · 짐 끌고 天神 3번 출구 → 지하철 1정거장 中洲川端 → 코인로커 대형 800엔(넣음) → 6번 출구 → 櫛田神社 11:15~12:10 → 海元寺 12:25~13:00 → 나카스·가와바타 점심·자유시간 → 17:3x 海元寺 끝 → 中洲川端 로커에서 짐 → 18:12 지하철 博多 → 18:24 筑紫口 국제선 직행버스(400엔 카드) → 18:41 국제선 → ZE650 20:40
 - 지갑: 0엔 — 남은 동전 270엔을 海元寺 새전으로 다 씀(17:31 은호당님 말씀). 남은 결제는 모두 카드
 - 확인 기다리는 것: 카드 명세서로 맞출 것: JR 城戸南蔵院前 → 福間 660엔(570엔 자료와 엇갈림)·자판기 미스티오 150엔 안팎
 - 확인 못 한 것: 구글 지도 「ツール・ド・九州2026開催に伴う…」 안내(잘림 — 버스·도로 영향 모름) · 서해선 막차(10/2) · 中洲川端 코인로커가 지폐·IC를 받는지 (캐리어는 들어감 — 10/2 확인)
@@ -34,7 +34,7 @@
 - 빌드: 집 컴퓨터에는 `_build/`(git 제외 — build.py·guide.py·test.mjs·HANDOFF.md)가 있어 `data.js`를 다시 만든다. 클라우드 세션이 `data.js`를 직접 고치면, 집 컴퓨터 세션이 그 내용을 build.py·guide.py로 옮겨야 다음 빌드 때 안 지워진다 (9/30 00:48 옮김 완료 — 다시 빌드한 결과가 클라우드 data.js와 1줄 빼고 같음)
 - 시각: 집 컴퓨터(Windows Git Bash)에서는 `TZ=Asia/Tokyo date`가 UTC를 보여 틀린다 → `python -c "from datetime import *; print(datetime.now(timezone(timedelta(hours=9))))"`로 확인
 - 세션 현황 (13:59): 원래 세션 「26년 가을 후쿠오카 기도 여행」이 다시 연결됨(은호당님 확인). 대화는 클라우드 세션 「목욕탕 경험 및 환전」 한 곳에서만 이어가기로 함 — 두 세션이 동시에 main에 올리면 충돌하고, 집 컴퓨터 세션이 _build로 다시 빌드하면 아래 "빌드 원본으로 옮길 것"이 지워짐. 집 컴퓨터 세션은 pull → 옮기기 → 테스트 뒤에만 빌드·푸시
-- 빌드 원본으로 옮길 것 (집 컴퓨터 세션 몫): 10/2 03:51 클라우드: data.js 10/2 다자이후 뺌 — 59~64·73~75번 삭제, 58·65~72·76번 시각·경로·안내(76번은 中洲川端 출발로 geom 잘라 씀), 10/2 tasks 두 줄, coin_guide 10/2 결제·5엔·100엔 줄, shop 다자이후 부적·food 우메가에모치 메모, 68번 택시 메모 / 10/1 15:40 클라우드: app.js YOMI 月と太陽糸島茶房前·薬院·西鉄五条, data.js 10/1·10/2 점검분(41·42·44·49·53·54·55·59·61·63·71·지갑 안내·현금 규칙·10/2 08:30 할 일) / 10/1 클라우드: app.js qPeek·setPeek·slideQuest(카드 좌우 넘기기)·inList, app.css #quest.peek, app.js setMin 높이 애니메이션·settle·끌기 따라오기, app.css .q-anim·.q-collapsing·.q-expanding·qRise, index.html #qMap·app.js gmapsNowUrl·app.css .q-actions 3칸, data.js 이동 9곳 brief(세 줄 요약), app.js objectivesRaw의 brief·카드 🎫/🪙 숨김·상세 "자세한 안내"·ruby 괄호 안 건너뛰기, app.js ruby()·YOMI_RE·objectivesRaw·coinTipRaw·gateTipRaw(화면 글에 읽는 법 자동), YOMI 30여 개 추가, data.js 39·41·51번 board·off·pay_how, 지출 s-1001-chikuhi1 / 11:23 클라우드가 data.js에 지출 s-0930-vend(160엔)·지갑 첫 줄을 고치고, app.js·app.css에 퀘스트 카드 접기(#quest.min, fk-qmin)를 넣음. 11:28에 index.html·app.js·app.css에 개찰구 한 줄(#qGate, gateTip), data.js에 9/30 시각 20곳, 11:34에 app.js GPS 자동 켜기(gpsKeep·gpsDenied)·하차 진동 ALIGHT_VIB [5000]·notify(vib), 앞서 app.js·app.css 기도 녹음(isPrayer·astore·recRender·recShare, 녹음 항목 위에선 가로 밀기 안 함), 앞서 data.js 남은 결제 27곳 pay_how·coin_guide 3줄, app.js coinTip이 pay_how 먼저, 앞서 data.js 9/30 12:08 열차 기준 시각·센고쿠유 3단계 삭제(새 32번 JR→지하철 도보)·10/1 38·39·51·52를 天神으로(天神↔赤坂 구간은 직선), app.js 이동 할 일 순서(objectives)와 체크 옮기기(P.objv2), 앞서 data.js 남은 이동 13곳 board·off·센고쿠유·결제 안내를 고침, 앞서 index.html·app.js·app.css 상세 시트 좌우 밀기·✕ 닫기(#sClose.sh-x, #sPos, sPrev·sNext 없앰), 앞서 app.js 내리기 알림(checkAlight·stopNames·pathLen, gps.t)·data.js 19번 board 3·4호차·25번 off 역 목록·est_time·board 문구("다음 열차의")·점심 이름·objectives·미야지다케 버스 주의 문구를 고침 — app.js·app.css가 _build에서 만들어지는 파일이면 옮길 것. / 03:50 클라우드가 data.js의 미야지다케신사 cautions를 고침 — "돌계단이 가파름 — 비 오면 특히 조심" 한 줄을 두 줄로 바꿈 (85단·일부 손잡이·뒤돌아보면 바다까지 일직선 / 사무소 0940-52-0016 무료 송영 · 개운전 회랑으로 오쿠노미야 계단 없이). `_build/test.mjs`는 클라우드에 없어서 못 돌림 / 9/30 저녁 클라우드 추가분: app.js YOMI(역 읽기 20여 개 더)·yomi(駅 붙어도)·checkAlight(끝난 이동 헛알림 막기, 갈아타는 이동은 마지막 토막만)·xferAt·checkTransfer(환승 알림)·offExtra(알림에 역 목록 빼기)·gpsUserOff·gpsSince·gateTip(무료·삼성페이 문구)·taskHead(할 일 카드 제목)·seed_del·.q-objs 스크롤 제스처·day.pois 핀, app.css #toast width·.poi·.q-objs·메뉴 탭, .sheetNav 삭제, index.html 메뉴 ✕
+- 빌드 원본으로 옮길 것 (집 컴퓨터 세션 몫): 10/2 18:54 클라우드: data.js 10/2 76·77번(博多 지하철·筑紫口 직행버스로), 10/2 공항 tasks 시각·저녁, coin_guide 10/2 결제 줄, app.js gateTipRaw 카드 버스 줄 / 10/2 03:51 클라우드: data.js 10/2 다자이후 뺌 — 59~64·73~75번 삭제, 58·65~72·76번 시각·경로·안내(76번은 中洲川端 출발로 geom 잘라 씀), 10/2 tasks 두 줄, coin_guide 10/2 결제·5엔·100엔 줄, shop 다자이후 부적·food 우메가에모치 메모, 68번 택시 메모 / 10/1 15:40 클라우드: app.js YOMI 月と太陽糸島茶房前·薬院·西鉄五条, data.js 10/1·10/2 점검분(41·42·44·49·53·54·55·59·61·63·71·지갑 안내·현금 규칙·10/2 08:30 할 일) / 10/1 클라우드: app.js qPeek·setPeek·slideQuest(카드 좌우 넘기기)·inList, app.css #quest.peek, app.js setMin 높이 애니메이션·settle·끌기 따라오기, app.css .q-anim·.q-collapsing·.q-expanding·qRise, index.html #qMap·app.js gmapsNowUrl·app.css .q-actions 3칸, data.js 이동 9곳 brief(세 줄 요약), app.js objectivesRaw의 brief·카드 🎫/🪙 숨김·상세 "자세한 안내"·ruby 괄호 안 건너뛰기, app.js ruby()·YOMI_RE·objectivesRaw·coinTipRaw·gateTipRaw(화면 글에 읽는 법 자동), YOMI 30여 개 추가, data.js 39·41·51번 board·off·pay_how, 지출 s-1001-chikuhi1 / 11:23 클라우드가 data.js에 지출 s-0930-vend(160엔)·지갑 첫 줄을 고치고, app.js·app.css에 퀘스트 카드 접기(#quest.min, fk-qmin)를 넣음. 11:28에 index.html·app.js·app.css에 개찰구 한 줄(#qGate, gateTip), data.js에 9/30 시각 20곳, 11:34에 app.js GPS 자동 켜기(gpsKeep·gpsDenied)·하차 진동 ALIGHT_VIB [5000]·notify(vib), 앞서 app.js·app.css 기도 녹음(isPrayer·astore·recRender·recShare, 녹음 항목 위에선 가로 밀기 안 함), 앞서 data.js 남은 결제 27곳 pay_how·coin_guide 3줄, app.js coinTip이 pay_how 먼저, 앞서 data.js 9/30 12:08 열차 기준 시각·센고쿠유 3단계 삭제(새 32번 JR→지하철 도보)·10/1 38·39·51·52를 天神으로(天神↔赤坂 구간은 직선), app.js 이동 할 일 순서(objectives)와 체크 옮기기(P.objv2), 앞서 data.js 남은 이동 13곳 board·off·센고쿠유·결제 안내를 고침, 앞서 index.html·app.js·app.css 상세 시트 좌우 밀기·✕ 닫기(#sClose.sh-x, #sPos, sPrev·sNext 없앰), 앞서 app.js 내리기 알림(checkAlight·stopNames·pathLen, gps.t)·data.js 19번 board 3·4호차·25번 off 역 목록·est_time·board 문구("다음 열차의")·점심 이름·objectives·미야지다케 버스 주의 문구를 고침 — app.js·app.css가 _build에서 만들어지는 파일이면 옮길 것. / 03:50 클라우드가 data.js의 미야지다케신사 cautions를 고침 — "돌계단이 가파름 — 비 오면 특히 조심" 한 줄을 두 줄로 바꿈 (85단·일부 손잡이·뒤돌아보면 바다까지 일직선 / 사무소 0940-52-0016 무료 송영 · 개운전 회랑으로 오쿠노미야 계단 없이). `_build/test.mjs`는 클라우드에 없어서 못 돌림 / 9/30 저녁 클라우드 추가분: app.js YOMI(역 읽기 20여 개 더)·yomi(駅 붙어도)·checkAlight(끝난 이동 헛알림 막기, 갈아타는 이동은 마지막 토막만)·xferAt·checkTransfer(환승 알림)·offExtra(알림에 역 목록 빼기)·gpsUserOff·gpsSince·gateTip(무료·삼성페이 문구)·taskHead(할 일 카드 제목)·seed_del·.q-objs 스크롤 제스처·day.pois 핀, app.css #toast width·.poi·.q-objs·메뉴 탭, .sheetNav 삭제, index.html 메뉴 ✕
 - 이전 세션 「26년 가을 후쿠오카 기도 여행」은 집 컴퓨터에서 돌던 원격 제어 세션이다. 거기서 쓰던 루트 `CLAUDE.md`는 `.gitignore`로 빠진 로컬 파일이다. 9/29 22:50 이전의 대화는 9/30 00:48에 「3. 시간순 기록」 맨 앞에 옮겨 적음
 
 ---
@@ -3617,3 +3617,21 @@
 
 앱에 반영
 - 지출 s-1002-bus-fukint 400엔 그대로, 메모를 "금액 확인"으로 (폰에 이미 들어간 메모는 안 바뀜)
+
+### 10/2 (금) 18:54 — 앱에 전부 반영
+
+요청
+- "앱에 전부 반영"
+
+그 밖에
+- 앱에 아직 옛 길(中洲川端 → 福岡空港 지하철 → 국내선 → 무료 연결버스)이 남아 있었음 → 실제로 간 길로 바꿈
+- 국제선 도착 시각은 구글 지도 캡처(18:41) 기준 — 실제 도착 시각은 말씀 없음(가정)
+- 헤드리스 크롬(390×844, 10/2 18:14·18:30·19:20으로 고정): 지하철 → 직행버스 → 저녁 할 일 카드가 차례로 뜸, 자바스크립트 오류 없음
+
+앱에 반영
+- data.js 76번: 지하철 中洲川端 → 博多 18:12~18:16 (구글 지도), 210엔 카드(운임 어림), 경로선은 博多까지 잘라 씀
+- data.js 77번: 무료 연결버스 → 西鉄 직행버스 博多駅 筑紫口 → 국제선 18:24~18:41, 400엔 카드 터치 (筑紫口 승강장 좌표·경로선은 직선 어림)
+- data.js 10/2 공항 할 일: 18:41 카운터 확인 → 18:50 체크인 → 19:15 저녁(HAKATA FOOD HALL, Reilly 버거 여부 확인 못 함)·마지막 담배 → 19:40 보안·출국심사 → 20:00 면세·게이트 → 20:10 탑승 대기 (20:25 마감). "남은 동전 쓰기" 뺌(현금 0엔)
+- data.js 지갑 안내 10/2 결제 줄: 현금은 로커·海元寺 새전으로 끝, 나머지는 모두 카드
+- app.js gateTip: 카드로 내는 버스는 "버스 단말에 카드 터치 — 현금·번호표 필요 없음" (예전엔 버스면 늘 현금 안내) — 집 컴퓨터 빌드 원본으로 옮길 것
+
