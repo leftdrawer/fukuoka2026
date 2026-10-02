@@ -14,6 +14,7 @@
     nishitetsu: { c: '#1B5AA8', label: '니시테츠',     icon: '🚃', gm: 'transit' },
     bus:        { c: '#DD873D', label: '버스',         icon: '🚌', gm: 'transit' },
     krail:      { c: '#0090D2', label: '전철',         icon: '🚆', gm: 'transit' },
+    taxi:       { c: '#E0A800', label: '택시',         icon: '🚕', gm: 'driving' },
     walk:       { c: 'var(--walk)', label: '도보',     icon: '🚶', gm: 'walking', dash: '1 9' }
   };
   var CAT = {
@@ -803,7 +804,7 @@
       h += '</dl>';
       h += '<div class="sh-actions">' + (s.mode !== 'flight' ? '<button data-run="1">경로 미리보기</button>' : '') + (s.to_ja ? '<button data-copy="' + esc(s.to_ja) + '">' + esc(s.to_ja) + ' 복사</button>' : '') +
         '<button data-done="1">' + (done ? '도착 취소' : '도착') + '</button>' + (s.mode !== 'flight' ? '<button data-exp="1">운임 기록</button>' : '') +
-        (m.gm ? '<a class="primary wide" href="' + gmapsUrl(e) + '" target="_blank" rel="noopener">구글 지도 길찾기 (' + (m.gm === 'walking' ? '도보' : '대중교통') + ')</a>' : '') + '</div>';
+        (m.gm ? '<a class="primary wide" href="' + gmapsUrl(e) + '" target="_blank" rel="noopener">구글 지도 길찾기 (' + (m.gm === 'walking' ? '도보' : m.gm === 'driving' ? '차' : '대중교통') + ')</a>' : '') + '</div>';
       h += '<div class="sh-src">출처: ' + esc(s.source || (s.est || s.est_time ? '추정 (엑셀 파란 글씨)' : '엑셀 일정')) + '</div>';
     }
     $('sheetBody').innerHTML = h; $('sheetBody').scrollTop = 0;
